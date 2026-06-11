@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
-import { EditorShell } from "@/components/editor/editor-shell";
+import { dark } from "@clerk/ui/themes";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -25,10 +25,26 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider>
+    <ClerkProvider
+      afterSignOutUrl={process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_OUT_URL}
+      appearance={{
+        theme: dark,
+        variables: {
+          colorBackground: "var(--card)",
+          colorPrimary: "#06b6d4",
+          colorPrimaryForeground: "var(--primary-foreground)",
+          colorForeground: "var(--foreground)",
+          colorInput: "var(--card)",
+          colorInputForeground: "var(--foreground)",
+          colorMutedForeground: "var(--muted-foreground)",
+          colorDanger: "var(--destructive)",
+          colorBorder: "var(--border)",
+        },
+      }}
+    >
       <html lang="en" className={`dark ${geistSans.variable} ${geistMono.variable}`}>
-        <body className="antialiased">
-          <EditorShell>{children}</EditorShell>
+        <body className="antialiased" suppressHydrationWarning>
+          {children}
         </body>
       </html>
     </ClerkProvider>
