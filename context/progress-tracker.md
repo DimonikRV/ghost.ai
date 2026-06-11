@@ -26,6 +26,7 @@ Update this file after every meaningful implementation change.
 
 ## Next Up
 
+- 03+ feature specs (TBD)
 - Fill in project-overview.md with actual project details
 - Fill in architecture.md with technology stack and decisions
 - Fill in ui-context.md with design tokens and conventions
@@ -43,3 +44,8 @@ Update this file after every meaningful implementation change.
 ## Session Notes
 
 - 2026-06-01: Context system initialized from Six-File Context playbook templates. Awaiting project-specific content.
+- 2026-06-11: **02-editor** complete — base chrome components:
+  - `components/editor/editor-navbar.tsx` — fixed top navbar, sidebar toggle with PanelLeftOpen/PanelLeftClose icons
+  - `components/editor/project-sidebar.tsx` — floating left sidebar with Projects header, My Projects/Shared tabs, New Project button
+  - `components/editor/dialog-pattern.tsx` — re-exports dialog primitives for future use
+  - `tsc --noEmit` and `npm run lint` pass clean
