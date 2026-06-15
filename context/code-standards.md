@@ -2,52 +2,56 @@
 
 ## General
 
-- [Principle — e.g. Keep modules small and single-purpose]
-- [Principle — e.g. Fix root causes, do not layer workarounds]
-- [Principle — e.g. Do not mix unrelated concerns in one
-  component or route]
+- Keep modules small and single-purpose
+- Fix root causes, do not layer workarounds
+- Do not mix unrelated concerns in one component or route
+- Update context files when implementation changes architecture, scope, or standards
 
 ## TypeScript
 
-- [Rule — e.g. Strict mode is required throughout the project]
-- [Rule — e.g. Avoid any — use explicit interfaces or narrowly
-  scoped types]
-- [Rule — e.g. Validate unknown external input at system
-  boundaries before trusting it]
+- Strict mode enabled via `tsconfig.json`
+- Avoid `any` — use explicit interfaces or narrowly scoped types
+- Validate unknown external input at system boundaries before trusting it
+- Export types explicitly when they cross module boundaries
+- `use client` directive only at the top of client component files
 
-## [Framework — e.g. Next.js]
+## Next.js
 
-- [Convention — e.g. Default to server components]
-- [Convention — e.g. Add use client only when browser
-  interactivity requires it]
-- [Convention — e.g. Keep route handlers focused on a
-  single responsibility]
+- Default to server components — add `"use client"` only when browser interactivity requires it
+- Route handlers should be focused on a single responsibility
+- Use route groups (`(auth)`, `(app)`) for layout separation, not for organization
+- Pages in `app/` are server components unless marked `"use client"`
 
 ## Styling
 
-- [Rule — e.g. Use CSS custom property tokens — no
-  hardcoded hex values]
-- [Rule — e.g. Follow the border radius scale defined
-  in ui-context.md]
+- Use CSS custom property tokens — no hardcoded hex values in components
+- Follow the border radius scale defined in `globals.css` (`--radius-sm` through `--radius-4xl`)
+- Tailwind utility classes preferred over inline styles
+- Use `cn()` helper from `lib/utils.ts` for conditional class merging
+- Dark theme via `.dark` class on `<html>` element — no separate dark mode files
+- Brand color: `--color-accent-brand` (defined in `@theme inline` block)
 
-## API Routes
+## Components
 
-- [Rule — e.g. Validate and parse request input before
-  any logic runs]
-- [Rule — e.g. Enforce auth and ownership before any mutation]
-- [Rule — e.g. Return consistent, predictable response shapes]
+- Client components in `components/` — use `"use client"` directive
+- Server components in `app/` route files
+- Editor chrome components in `components/editor/`
+- shadcn primitives in `components/ui/` — never modify after installation
+- Dialog components use `@base-ui/react` primitives via shadcn
+- Props interfaces should be explicit and exported when consumed by other files
 
-## Data and Storage
+## Hooks
 
-- [Rule — e.g. Metadata belongs in the database]
-- [Rule — e.g. Large generated content belongs in file
-  or blob storage]
-- [Rule — e.g. Do not store large content directly in
-  the database]
+- Custom hooks in the same directory as their consumers (e.g., `components/editor/`)
+- Hook return types should be explicitly typed and exported
+- Use `useCallback` for stable function references passed to child components
+- Use `useRef` + `useEffect` cleanup for timers and subscriptions
 
 ## File Organization
 
-- `[folder]/` — [What belongs here]
-- `[folder]/` — [What belongs here]
-- `[folder]/` — [What belongs here]
-- `[folder]/` — [What belongs here]s
+- `app/` — Next.js routes and layouts
+- `components/ui/` — shadcn/ui primitives (generated)
+- `components/editor/` — Editor chrome (navbar, sidebar, dialogs, hooks)
+- `lib/` — Utility functions (`cn`, shared helpers)
+- `context/` — Project documentation (specs, standards, progress)
+- `.agents/skills/` — Installed agent skills

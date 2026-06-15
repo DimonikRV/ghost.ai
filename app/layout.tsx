@@ -31,7 +31,7 @@ export default function RootLayout({
         theme: dark,
         variables: {
           colorBackground: "var(--card)",
-          colorPrimary: "#06b6d4",
+          colorPrimary: "var(--color-accent-brand)",
           colorPrimaryForeground: "var(--primary-foreground)",
           colorForeground: "var(--foreground)",
           colorInput: "var(--card)",

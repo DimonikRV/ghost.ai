@@ -35,6 +35,7 @@ Description.
 - [ ] Condition one
 - [ ] Condition two
 - [ ] No TypeScript errors
+- [ ] No lint errors
 - [ ] No console errors
-- [ ] Responsive at mobile and desktop
 - [ ] Build passes
+- [ ] Responsive at mobile and desktop

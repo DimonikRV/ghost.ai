@@ -7,7 +7,10 @@ Each unit maps to a spec file in this directory.
 
 | # | Spec | Name | Status | Notes |
 |---|------|------|--------|-------|
-| 01 | 01-design-system.md | Design System | Not started | |
+| 01 | 01-design-system.md | Design System | ✅ Done | shadcn/ui initialized, dark theme, cn helper |
+| 02 | 02-editor.md | Editor Chrome | ✅ Done | Navbar + sidebar + dialog pattern |
+| 03 | 03-auth.md | Authentication | ✅ Done | Clerk wired, route protection, auth pages |
+| 04 | 04-project-dialogs.md | Project Dialogs | ✅ Done | Create/rename/delete dialogs, sidebar actions |
 
 ## How to Add a Unit
 

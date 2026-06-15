@@ -36,6 +36,17 @@ Update this file after every meaningful implementation change.
   - `app/page.tsx` — server component: authenticated → `/editor`, unauthenticated → `/sign-in`
   - `app/editor/page.tsx` — placeholder editor page
   - `npm run build` passes clean
+- **04-project-dialogs** — Editor home + project dialogs + sidebar actions:
+  - `components/editor/use-project-dialogs.ts` — hook managing dialog state, form state, loading state, mock data
+  - `components/editor/project-dialogs-context.tsx` — React context so children can access dialog actions
+  - `components/editor/create-project-dialog.tsx` — name input with live slug preview
+  - `components/editor/rename-project-dialog.tsx` — prefilled name input, current name in description, Enter submits, auto-focus
+  - `components/editor/delete-project-dialog.tsx` — destructive confirmation, descriptive text, no input
+  - `components/editor/editor-home.tsx` — centered heading, description, New Project button
+  - `components/editor/project-sidebar.tsx` — rename/delete actions on owned projects only, hidden for shared, mobile backdrop scrim
+  - `components/editor/editor-shell.tsx` — wires all dialogs, sidebar actions, and editor home together
+  - `app/editor/page.tsx` — renders EditorShell with EditorHome content
+  - `tsc --noEmit` and `npm run lint` pass clean
 
 ## In Progress
 
@@ -43,7 +54,7 @@ Update this file after every meaningful implementation change.
 
 ## Next Up
 
-- 04+ feature specs (TBD)
+- 05+ feature specs (TBD)
 - Fill in project-overview.md with actual project details
 - Fill in architecture.md with technology stack and decisions
 - Fill in ui-context.md with design tokens and conventions
