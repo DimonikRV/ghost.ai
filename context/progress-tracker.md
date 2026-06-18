@@ -82,7 +82,7 @@ Update this file after every meaningful implementation change.
 
 ## Next Up
 
-- 08+ feature specs (TBD)
+- 09+ feature specs (TBD)
 - Fill in project-overview.md with actual project details
 - Fill in architecture.md with technology stack and decisions
 - Fill in ui-context.md with design tokens and conventions
@@ -108,3 +108,20 @@ Update this file after every meaningful implementation change.
 - 2026-06-11: **03-auth** complete — Clerk auth fully wired with route protection, themed auth pages, UserButton in navbar
 - 2026-06-15: **05-prisma** complete — models, singleton client, migration, client generation all verified
 - 2026-06-17: **07-wire-editor-home** complete — wired editor home to real project API (note: spec review step was skipped during implementation — corrective feedback has been saved)
+- 2026-06-18: **08-editor-workspace-shell** complete — workspace shell with server-side access checks:
+  - `lib/project-access.ts` — access helpers: `getCurrentIdentity()`, `checkProjectAccess()`, `getProjectWithAccess()`, `getProjectCollaboratorEmails()`
+  - `components/editor/access-denied.tsx` — centered layout, lock icon, message, link to `/editor`
+  - `components/editor/project-not-found.tsx` — centered layout, file-question icon, message, link to `/editor`
+  - `components/editor/workspace-shell.tsx` — full-viewport workspace layout with project name navbar, share button, AI sidebar toggle, ProjectSidebar with active project highlight, canvas placeholder, AI chat placeholder
+  - `components/editor/project-sidebar.tsx` — extended with `activeProjectId` prop for current room highlighting
+  - `app/editor/[projectId]/page.tsx` — server component: unauthenticated → redirect `/sign-in`, no access → AccessDenied, not found → ProjectNotFound, has access → WorkspaceShell
+  - `npm run lint` and `npm run build` pass clean
+- 2026-06-18: **09-share-dialog** complete — share dialog with collaborator management:
+  - `@clerk/backend` installed for Clerk user lookup by email
+  - `app/api/projects/[projectId]/collaborators/route.ts` — GET (list with Clerk enrichment), POST (invite, owner-only, validates email format/duplicates/owner), DELETE (revoke, owner-only, by id or email)
+  - `components/editor/share-dialog.tsx` — dialog with: email invite input (owner-only), collaborator list with avatar/name/email, remove button (owner-only), copy link with "Copied!" feedback (owner-only), read-only view for collaborators
+  - `components/editor/workspace-shell.tsx` — wired Share button to open dialog, manages local state for share open/collaborators/loading/error, extends props with `isOwner` + `collaborators`
+  - `app/editor/[projectId]/page.tsx` — passes `isOwner` and `collaborators` to WorkspaceShell from existing `getProjectWithAccess()` data
+  - Clerk enrichment via `clerkClient.users.getUserList()` batch-fetches profiles (displayName from firstName/lastName/username, avatarUrl from imageUrl), falls back to email-only if not found
+  - Validation: email format check, duplicate collaborator check (400), owner self-invite prevention (400), empty email check (400)
+  - `npm run build` passes clean
