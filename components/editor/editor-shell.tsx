@@ -1,23 +1,26 @@
-"use client"
+"use client";
 
-import { useState, useSyncExternalStore } from "react"
-import { EditorNavbar } from "@/components/editor/editor-navbar"
-import { ProjectSidebar } from "@/components/editor/project-sidebar"
-import { ProjectDialogsProvider, useProjectDialogsContext } from "@/components/editor/project-dialogs-context"
-import { CreateProjectDialog } from "@/components/editor/create-project-dialog"
-import { RenameProjectDialog } from "@/components/editor/rename-project-dialog"
-import { DeleteProjectDialog } from "@/components/editor/delete-project-dialog"
+import { useState, useSyncExternalStore } from "react";
+import { EditorNavbar } from "@/components/editor/editor-navbar";
+import { ProjectSidebar } from "@/components/editor/project-sidebar";
+import { ProjectActionsProvider, useProjectActionsContext } from "@/components/editor/project-actions-context";
+import { CreateProjectDialog } from "@/components/editor/create-project-dialog";
+import { RenameProjectDialog } from "@/components/editor/rename-project-dialog";
+import { DeleteProjectDialog } from "@/components/editor/delete-project-dialog";
+import type { ProjectItem } from "@/hooks/use-project-actions";
 
 interface EditorShellProps {
-  children: React.ReactNode
+  children: React.ReactNode;
+  ownedProjects: ProjectItem[];
+  sharedProjects: ProjectItem[];
 }
 
 function useMounted(): boolean {
   return useSyncExternalStore(
-    () => () => { }, // no-op subscribe
-    () => true, // client: true
-    () => false // server: false
-  )
+    () => () => { },
+    () => true,
+    () => false,
+  );
 }
 
 function DialogsRenderer() {
@@ -25,7 +28,7 @@ function DialogsRenderer() {
     activeDialog,
     selectedProject,
     createName,
-    createSlug,
+    createRoomId,
     renameName,
     isLoading,
     closeDialogs,
@@ -34,7 +37,7 @@ function DialogsRenderer() {
     handleCreateSubmit,
     handleRenameSubmit,
     handleDeleteSubmit,
-  } = useProjectDialogsContext()
+  } = useProjectActionsContext();
 
   return (
     <>
@@ -42,7 +45,7 @@ function DialogsRenderer() {
         open={activeDialog === "create"}
         onOpenChange={(open) => !open && closeDialogs()}
         name={createName}
-        slug={createSlug}
+        roomId={createRoomId}
         onNameChange={setCreateName}
         onSubmit={handleCreateSubmit}
         isLoading={isLoading}
@@ -68,13 +71,17 @@ function DialogsRenderer() {
         </>
       )}
     </>
-  )
+  );
 }
 
-function EditorShellInner({ children }: EditorShellProps) {
-  const [sidebarOpen, setSidebarOpen] = useState(false)
-  const mounted = useMounted()
-  const dialogs = useProjectDialogsContext()
+function EditorShellInner({
+  children,
+  ownedProjects,
+  sharedProjects,
+}: EditorShellProps) {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const mounted = useMounted();
+  const actions = useProjectActionsContext();
 
   return (
     <>
@@ -86,21 +93,23 @@ function EditorShellInner({ children }: EditorShellProps) {
         <ProjectSidebar
           isOpen={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
-          onRename={dialogs.openRename}
-          onDelete={dialogs.openDelete}
-          onCreate={dialogs.openCreate}
+          ownedProjects={ownedProjects}
+          sharedProjects={sharedProjects}
+          onRename={actions.openRename}
+          onDelete={actions.openDelete}
+          onCreate={actions.openCreate}
         />
       )}
       <main className="pt-12 min-h-screen">{children}</main>
       <DialogsRenderer />
     </>
-  )
+  );
 }
 
-export function EditorShell({ children }: EditorShellProps) {
+export function EditorShell(props: EditorShellProps) {
   return (
-    <ProjectDialogsProvider>
-      <EditorShellInner>{children}</EditorShellInner>
-    </ProjectDialogsProvider>
-  )
+    <ProjectActionsProvider>
+      <EditorShellInner {...props} />
+    </ProjectActionsProvider>
+  );
 }

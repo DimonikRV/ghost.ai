@@ -1,18 +1,13 @@
-"use client"
+import { getProjects } from "@/lib/get-projects";
+import { EditorShell } from "@/components/editor/editor-shell";
+import { EditorPageContent } from "@/components/editor/editor-page-content";
 
-import { EditorShell } from "@/components/editor/editor-shell"
-import { EditorHome } from "@/components/editor/editor-home"
-import { useProjectDialogsContext } from "@/components/editor/project-dialogs-context"
+export default async function EditorPage() {
+  const { owned, shared } = await getProjects();
 
-export default function EditorPage() {
   return (
-    <EditorShell>
+    <EditorShell ownedProjects={owned} sharedProjects={shared}>
       <EditorPageContent />
     </EditorShell>
-  )
-}
-
-function EditorPageContent() {
-  const { openCreate } = useProjectDialogsContext()
-  return <EditorHome onOpenCreate={openCreate} />
+  );
 }

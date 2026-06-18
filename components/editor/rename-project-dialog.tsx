@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import {
   Dialog,
@@ -7,20 +7,20 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/editor/dialog-pattern"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Loader2 } from "lucide-react"
-import type { ProjectData } from "./use-project-dialogs"
+} from "@/components/editor/dialog-pattern";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Loader2 } from "lucide-react";
+import type { ProjectItem } from "@/hooks/use-project-actions";
 
 interface RenameProjectDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  project: ProjectData
-  name: string
-  onNameChange: (name: string) => void
-  onSubmit: () => void
-  isLoading: boolean
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  project: ProjectItem;
+  name: string;
+  onNameChange: (name: string) => void;
+  onSubmit: () => void;
+  isLoading: boolean;
 }
 
 export function RenameProjectDialog({
@@ -54,8 +54,8 @@ export function RenameProjectDialog({
             aria-describedby="rename-current-name"
             onKeyDown={(e) => {
               if (e.key === "Enter" && name.trim() && !isLoading) {
-                e.preventDefault()
-                onSubmit()
+                e.preventDefault();
+                onSubmit();
               }
             }}
           />
@@ -72,5 +72,5 @@ export function RenameProjectDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

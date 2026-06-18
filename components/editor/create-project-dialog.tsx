@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import {
   Dialog,
@@ -7,26 +7,26 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/editor/dialog-pattern"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Loader2 } from "lucide-react"
+} from "@/components/editor/dialog-pattern";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Loader2 } from "lucide-react";
 
 interface CreateProjectDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  name: string
-  slug: string
-  onNameChange: (name: string) => void
-  onSubmit: () => void
-  isLoading: boolean
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  name: string;
+  roomId: string;
+  onNameChange: (name: string) => void;
+  onSubmit: () => void;
+  isLoading: boolean;
 }
 
 export function CreateProjectDialog({
   open,
   onOpenChange,
   name,
-  slug,
+  roomId,
   onNameChange,
   onSubmit,
   isLoading,
@@ -50,21 +50,21 @@ export function CreateProjectDialog({
             maxLength={80}
             autoFocus
             disabled={isLoading}
-            aria-describedby="create-slug-preview"
+            aria-describedby="create-room-id-preview"
             onKeyDown={(e) => {
               if (e.key === "Enter" && name.trim() && !isLoading) {
-                e.preventDefault()
-                onSubmit()
+                e.preventDefault();
+                onSubmit();
               }
             }}
           />
-          {slug && (
-            <p id="create-slug-preview" className="text-xs text-muted-foreground">
-              Slug: <span className="font-mono">{slug}</span>
+          {roomId && (
+            <p id="create-room-id-preview" className="text-xs text-muted-foreground">
+              Room ID: <span className="font-mono">{roomId}</span>
             </p>
           )}
-          {!slug && name.trim() && (
-            <p id="create-slug-preview" className="text-xs text-destructive">
+          {!roomId && name.trim() && (
+            <p id="create-room-id-preview" className="text-xs text-destructive">
               Name contains only special characters. Use letters, numbers, or spaces.
             </p>
           )}
@@ -81,5 +81,5 @@ export function CreateProjectDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

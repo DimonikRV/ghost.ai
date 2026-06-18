@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import {
   Dialog,
@@ -7,17 +7,17 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/editor/dialog-pattern"
-import { Button } from "@/components/ui/button"
-import { Loader2 } from "lucide-react"
-import type { ProjectData } from "./use-project-dialogs"
+} from "@/components/editor/dialog-pattern";
+import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
+import type { ProjectItem } from "@/hooks/use-project-actions";
 
 interface DeleteProjectDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  project: ProjectData
-  onSubmit: () => void
-  isLoading: boolean
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  project: ProjectItem;
+  onSubmit: () => void;
+  isLoading: boolean;
 }
 
 export function DeleteProjectDialog({
@@ -52,5 +52,5 @@ export function DeleteProjectDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

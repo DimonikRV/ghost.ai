@@ -1,100 +1,102 @@
-"use client"
+"use client";
 
-import { Plus, X, MoreVertical, Pencil, Trash2 } from "lucide-react"
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import { cn } from "@/lib/utils"
-import { useState, useEffect } from "react"
-import type { ProjectData } from "./use-project-dialogs"
-import { MOCK_PROJECTS } from "./use-project-dialogs"
+import { Plus, X, MoreVertical, Pencil, Trash2 } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
+import { useState, useEffect } from "react";
+import { slugify, type ProjectItem } from "@/hooks/use-project-actions";
 
 interface ProjectSidebarProps {
-  isOpen: boolean
-  onClose: () => void
-  onRename: (project: ProjectData) => void
-  onDelete: (project: ProjectData) => void
-  onCreate: () => void
-  className?: string
+  isOpen: boolean;
+  onClose: () => void;
+  ownedProjects: ProjectItem[];
+  sharedProjects: ProjectItem[];
+  onRename: (project: ProjectItem) => void;
+  onDelete: (project: ProjectItem) => void;
+  onCreate: () => void;
+  className?: string;
 }
 
-function ProjectItem({
+function ProjectItemRow({
   project,
   onRename,
   onDelete,
 }: {
-  project: ProjectData
-  onRename: (project: ProjectData) => void
-  onDelete: (project: ProjectData) => void
+  project: ProjectItem;
+  onRename: (project: ProjectItem) => void;
+  onDelete: (project: ProjectItem) => void;
 }) {
-  const [menuOpen, setMenuOpen] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false);
 
-  // Dismiss dropdown on Escape key
   useEffect(() => {
-    if (!menuOpen) return
+    if (!menuOpen) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setMenuOpen(false)
-    }
-    window.addEventListener("keydown", onKey)
-    return () => window.removeEventListener("keydown", onKey)
-  }, [menuOpen])
+      if (e.key === "Escape") setMenuOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [menuOpen]);
+
+  const slug = slugify(project.name) || project.id;
 
   return (
     <div className="group flex items-center justify-between rounded-md px-3 py-2 hover:bg-accent/50">
       <div className="flex flex-col overflow-hidden">
         <span className="truncate text-sm font-medium">{project.name}</span>
-        <span className="truncate text-xs text-muted-foreground">/{project.slug}</span>
+        <span className="truncate text-xs text-muted-foreground">/{slug}</span>
       </div>
-      {project.owned && (
-        <div className="relative shrink-0">
-          <button
-            type="button"
-            onClick={() => setMenuOpen(!menuOpen)}
-            className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground opacity-0 group-hover:opacity-100 hover:bg-accent hover:text-accent-foreground transition-all"
-            aria-label="Project actions"
-          >
-            <MoreVertical className="h-3.5 w-3.5" />
-          </button>
-          {menuOpen && (
-            <>
-              <div
-                className="fixed inset-0 z-40"
-                onClick={() => setMenuOpen(false)}
-                aria-hidden="true"
-              />
-              <div className="absolute right-0 top-full mt-1 z-50 w-36 rounded-md border border-border bg-popover p-1 shadow-md">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMenuOpen(false)
-                    onRename(project)
-                  }}
-                  className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent"
-                >
-                  <Pencil className="h-3.5 w-3.5" />
-                  Rename
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMenuOpen(false)
-                    onDelete(project)
-                  }}
-                  className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-destructive hover:bg-destructive/10"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                  Delete
-                </button>
-              </div>
-            </>
-          )}
-        </div>
-      )}
+      <div className="relative shrink-0">
+        <button
+          type="button"
+          onClick={() => setMenuOpen(!menuOpen)}
+          className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground opacity-0 group-hover:opacity-100 hover:bg-accent hover:text-accent-foreground transition-all"
+          aria-label="Project actions"
+        >
+          <MoreVertical className="h-3.5 w-3.5" />
+        </button>
+        {menuOpen && (
+          <>
+            <div
+              className="fixed inset-0 z-40"
+              onClick={() => setMenuOpen(false)}
+              aria-hidden="true"
+            />
+            <div className="absolute right-0 top-full mt-1 z-50 w-36 rounded-md border border-border bg-popover p-1 shadow-md">
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpen(false);
+                  onRename(project);
+                }}
+                className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+                Rename
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpen(false);
+                  onDelete(project);
+                }}
+                className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-destructive hover:bg-destructive/10"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Delete
+              </button>
+            </div>
+          </>
+        )}
+      </div>
     </div>
-  )
+  );
 }
 
 export function ProjectSidebar({
   isOpen,
   onClose,
+  ownedProjects,
+  sharedProjects,
   onRename,
   onDelete,
   onCreate,
@@ -116,7 +118,7 @@ export function ProjectSidebar({
         className={cn(
           "fixed top-12 left-0 bottom-0 z-50 flex w-80 flex-col bg-card border-r border-border shadow-lg transition-transform duration-200 ease-in-out md:shadow-none",
           isOpen ? "translate-x-0" : "-translate-x-full",
-          className
+          className,
         )}
       >
         {/* Header */}
@@ -140,25 +142,33 @@ export function ProjectSidebar({
           </TabsList>
 
           <TabsContent value="my-projects" className="flex-1 overflow-y-auto pt-3 space-y-1">
-            {MOCK_PROJECTS.filter((p) => p.owned).map((project) => (
-              <ProjectItem
-                key={project.id}
-                project={project}
-                onRename={onRename}
-                onDelete={onDelete}
-              />
-            ))}
+            {ownedProjects.length === 0 ? (
+              <p className="px-3 py-2 text-sm text-muted-foreground">No projects yet.</p>
+            ) : (
+              ownedProjects.map((project) => (
+                <ProjectItemRow
+                  key={project.id}
+                  project={project}
+                  onRename={onRename}
+                  onDelete={onDelete}
+                />
+              ))
+            )}
           </TabsContent>
 
           <TabsContent value="shared" className="flex-1 overflow-y-auto pt-3 space-y-1">
-            {MOCK_PROJECTS.filter((p) => !p.owned).map((project) => (
-              <ProjectItem
-                key={project.id}
-                project={project}
-                onRename={onRename}
-                onDelete={onDelete}
-              />
-            ))}
+            {sharedProjects.length === 0 ? (
+              <p className="px-3 py-2 text-sm text-muted-foreground">No shared projects.</p>
+            ) : (
+              sharedProjects.map((project) => (
+                <ProjectItemRow
+                  key={project.id}
+                  project={project}
+                  onRename={onRename}
+                  onDelete={onDelete}
+                />
+              ))
+            )}
           </TabsContent>
         </Tabs>
 
@@ -175,5 +185,5 @@ export function ProjectSidebar({
         </div>
       </aside>
     </>
-  )
+  );
 }
