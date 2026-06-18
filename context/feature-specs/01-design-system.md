@@ -1,8 +1,20 @@
-Read 'QWEN.md' before starting any implementation.
+# Unit 01: Design System
 
-We're adding the design system and UI primitive components.
+## Goal
 
-install and configure 'shadcn/ui'.
+Set up shadcn/ui as the design system foundation with dark theme support and core UI primitive components. All subsequent specs build on these components.
+
+## Design
+
+- Dark theme via `.dark` class on `<html>` element in root layout
+- Color tokens defined as CSS custom properties in `globals.css` — no hardcoded hex values in components
+- Use existing shadcn/ui component internals; don't modify generated `components/ui/*` files after installation
+- Icon system via `lucide-react` — consistent 4w/4h default sizing
+- Typography: Geist Sans (body), Geist Mono (code)
+
+## Implementation
+
+Install and configure `shadcn/ui` with Tailwind CSS v4.
 
 Add these shadcn components:
 - button
@@ -10,25 +22,30 @@ Add these shadcn components:
 - input
 - tabs
 - scroll-area
-- text-area
-- dialog 
+- textarea
+- dialog
 
-Don't modify the generated 'components/ui/*' files after installation.
+Don't modify the generated `components/ui/*` files after installation.
 
-Also install 'lucide-react' for icons.
+Also install `lucide-react` for icons.
 
-Create 'lib/utils.ts' with a reusable 'cn' helper for merging Tailwind classes.
+Create `lib/utils.ts` with a reusable `cn` helper for merging Tailwind classes.
 
-Ensure all components match the existing dark theme in 'app/global.css'.
+Ensure all components respect the existing dark theme in `globals.css`.
 
-Run 'npm run lint' and 'tsc --noEmit' after installation. Fix all issues.   
+## Dependencies
 
-### Check when done
- - All components import without errors
- - 'cn' helper works correctly
- - No default styles from shadcn/ui remain (we want full custom styling)
- - TypeScript types are correctly set up
- - 'package.json' has all dependencies listed
- - No console warnings or errors
+- `shadcn` — UI component library
+- `lucide-react` — icon library
 
-Once done, say "✅ Design system ready"
+## Verify When Done
+
+- [ ] All components import without errors
+- [ ] `cn` helper works correctly
+- [ ] No default styles from shadcn/ui remain (full custom styling)
+- [ ] TypeScript types are correctly set up
+- [ ] `package.json` has all dependencies listed
+- [ ] No TypeScript errors
+- [ ] No lint errors
+- [ ] No console warnings or errors
+- [ ] Build passes

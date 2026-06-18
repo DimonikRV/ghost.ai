@@ -1,0 +1,85 @@
+"use client";
+
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/editor/dialog-pattern";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Loader2 } from "lucide-react";
+
+interface CreateProjectDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  name: string;
+  roomId: string;
+  onNameChange: (name: string) => void;
+  onSubmit: () => void;
+  isLoading: boolean;
+}
+
+export function CreateProjectDialog({
+  open,
+  onOpenChange,
+  name,
+  roomId,
+  onNameChange,
+  onSubmit,
+  isLoading,
+}: CreateProjectDialogProps) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Create Project</DialogTitle>
+          <DialogDescription>
+            Give your new workspace a name.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-3 py-2">
+          <Input
+            id="create-project-name"
+            placeholder="Project name"
+            value={name}
+            onChange={(e) => onNameChange(e.target.value)}
+            maxLength={80}
+            autoFocus
+            disabled={isLoading}
+            aria-describedby="create-room-id-preview"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && name.trim() && !isLoading) {
+                e.preventDefault();
+                onSubmit();
+              }
+            }}
+          />
+          {roomId && (
+            <p id="create-room-id-preview" className="text-xs text-muted-foreground">
+              Room ID: <span className="font-mono">{roomId}</span>
+            </p>
+          )}
+          {!roomId && name.trim() && (
+            <p id="create-room-id-preview" className="text-xs text-destructive">
+              Name contains only special characters. Use letters, numbers, or spaces.
+            </p>
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
+            Cancel
+          </Button>
+          <Button onClick={onSubmit} disabled={!name.trim() || isLoading}>
+            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Create
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
