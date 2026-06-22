@@ -25,28 +25,25 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider
-      afterSignOutUrl={process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_OUT_URL}
-      appearance={{
-        theme: dark,
-        variables: {
-          colorBackground: "var(--card)",
-          colorPrimary: "var(--color-accent-brand)",
-          colorPrimaryForeground: "var(--primary-foreground)",
-          colorForeground: "var(--foreground)",
-          colorInput: "var(--card)",
-          colorInputForeground: "var(--foreground)",
-          colorMutedForeground: "var(--muted-foreground)",
-          colorDanger: "var(--destructive)",
-          colorBorder: "var(--border)",
-        },
-      }}
-    >
-      <html lang="en" className={`dark ${geistSans.variable} ${geistMono.variable}`}>
-        <body className="antialiased" suppressHydrationWarning>
+    <html lang="en" className={`dark ${geistSans.variable} ${geistMono.variable}`}>
+      <body className="antialiased" suppressHydrationWarning><ClerkProvider
+          afterSignOutUrl={process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_OUT_URL}
+          appearance={{
+            theme: dark,
+            variables: {
+              colorBackground: "var(--card)",
+              colorPrimary: "var(--color-accent-brand)",
+              colorPrimaryForeground: "var(--primary-foreground)",
+              colorForeground: "var(--foreground)",
+              colorInput: "var(--card)",
+              colorInputForeground: "var(--foreground)",
+              colorMutedForeground: "var(--muted-foreground)",
+              colorDanger: "var(--destructive)",
+              colorBorder: "var(--border)",
+            },
+          }}>
           {children}
-        </body>
-      </html>
-    </ClerkProvider>
+        </ClerkProvider></body>
+    </html>
   );
 }

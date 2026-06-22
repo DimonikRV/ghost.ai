@@ -1,9 +1,8 @@
-import { auth } from "@clerk/nextjs/server";
-import { createClerkClient, type EmailAddress } from "@clerk/backend";
+import { auth, clerkClient, currentUser } from "@clerk/nextjs/server";
+import type { EmailAddress } from "@clerk/backend";
+import { checkProjectAccess } from "@/lib/project-access";
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-
-const clerkClient = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -27,27 +26,12 @@ export async function GET(
 
   const { projectId } = await params;
 
-  const project = await prisma.project.findUnique({
-    where: { id: projectId },
-    select: { id: true, ownerId: true },
-  });
-
-  if (!project) {
+  const access = await checkProjectAccess(projectId);
+  if (access.found === false) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
-
-  if (project.ownerId !== userId) {
-    // Check if user is a collaborator
-    const identity = await getCurrentUserEmail();
-    if (!identity?.email) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-    const isCollaborator = await prisma.projectCollaborator.findFirst({
-      where: { projectId, email: identity.email },
-    });
-    if (!isCollaborator) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+  if (!access.access.hasAccess) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const collaborators = await prisma.projectCollaborator.findMany({
@@ -60,7 +44,7 @@ export async function GET(
   const enriched = await enrichWithClerkData(collaborators.map((c) => c.email));
 
   return NextResponse.json({
-    isOwner: project.ownerId === userId,
+    isOwner: access.access.isOwner,
     collaborators: collaborators.map((c) => ({
       id: c.id,
       email: c.email,
@@ -226,9 +210,9 @@ export async function DELETE(
 async function getCurrentUserEmail(): Promise<{ email: string | null } | null> {
   const { userId } = await auth();
   if (!userId) return null;
-  // Use Clerk backend to get user email
   try {
-    const user = await clerkClient.users.getUser(userId);
+    const client = await clerkClient();
+    const user = await client.users.getUser(userId);
     const primaryEmail = getPrimaryEmail(user.emailAddresses, user.primaryEmailAddressId);
     return { email: primaryEmail?.emailAddress ?? null };
   } catch {
@@ -238,7 +222,8 @@ async function getCurrentUserEmail(): Promise<{ email: string | null } | null> {
 
 async function getOwnerEmail(ownerId: string): Promise<string | null> {
   try {
-    const user = await clerkClient.users.getUser(ownerId);
+    const client = await clerkClient();
+    const user = await client.users.getUser(ownerId);
     const primaryEmail = getPrimaryEmail(user.emailAddresses, user.primaryEmailAddressId);
     return primaryEmail?.emailAddress ?? null;
   } catch {
@@ -260,7 +245,8 @@ async function enrichWithClerkData(
 
   try {
     // Batch-fetch users by email
-    const response = await clerkClient.users.getUserList({
+    const client = await clerkClient();
+    const response = await client.users.getUserList({
       emailAddress: emails,
       limit: emails.length,
     });

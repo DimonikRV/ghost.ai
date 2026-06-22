@@ -49,11 +49,20 @@ Manage share dialog state locally within `WorkspaceShell` (not in `useProjectAct
 
 Create `app/api/projects/[projectId]/collaborators/route.ts`:
 
-- **GET** — List collaborators. Allow both owners and collaborators to read.
+- **GET** — List collaborators. Allow both owners and collaborators to read. Use `checkProjectAccess()` from `lib/project-access.ts` for access verification — do not re-implement the owner/collaborator check.
 - **POST** — Invite collaborator (owner only). Accepts `{ email: string }`.
 - **DELETE** — Revoke collaborator (owner only). Accepts `{ collaboratorId: string }` or `{ email: string }`.
 
 Enforce ownership server-side for POST and DELETE using the existing pattern: `auth()` → fetch project → `project.ownerId === userId` → 403 if not owner.
+
+**Clerk client:** Use `clerkClient()` from `@clerk/nextjs/server` (not `createClerkClient`). This is the idiomatic Next.js pattern — it returns a promise and benefits from internal caching:
+
+```typescript
+import { clerkClient } from "@clerk/nextjs/server";
+
+const client = await clerkClient();
+const users = await client.users.getUserList({ emailAddress: emails });
+```
 
 Don't add a local user table.
 

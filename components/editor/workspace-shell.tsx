@@ -5,6 +5,7 @@ import { PanelLeftOpen, PanelLeftClose, Share2, Bot } from "lucide-react";
 import { UserButton } from "@clerk/nextjs";
 import { ProjectSidebar } from "@/components/editor/project-sidebar";
 import { ShareDialog, type Collaborator } from "@/components/editor/share-dialog";
+import { ShapePanel } from "@/components/editor/shape-panel";
 import type { ProjectItem } from "@/hooks/use-project-actions";
 import { cn } from "@/lib/utils";
 
@@ -186,6 +187,9 @@ export function WorkspaceShell({
       <main className="fixed top-12 left-0 right-0 bottom-0 overflow-hidden">
         {children}
       </main>
+
+      {/* Shape panel */}
+      <ShapePanel />
 
       {/* Share dialog */}
       <ShareDialog

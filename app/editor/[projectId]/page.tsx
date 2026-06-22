@@ -5,6 +5,7 @@ import { getProjects } from "@/lib/get-projects";
 import { WorkspaceShell } from "@/components/editor/workspace-shell";
 import { AccessDenied } from "@/components/editor/access-denied";
 import { ProjectNotFound } from "@/components/editor/project-not-found";
+import { LiveCanvas } from "@/components/editor/live-canvas";
 
 export default async function WorkspacePage({
   params,
@@ -54,13 +55,7 @@ export default async function WorkspacePage({
       isOwner={isOwner}
       collaborators={collaborators}
     >
-      {/* Central canvas placeholder */}
-      <div className="flex h-full w-full flex-col items-center justify-center bg-background">
-        <p className="text-lg font-medium text-foreground">Canvas</p>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Your workspace canvas will appear here.
-        </p>
-      </div>
+      <LiveCanvas projectId={project.id} />
     </WorkspaceShell>
   );
 }

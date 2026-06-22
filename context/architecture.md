@@ -9,6 +9,8 @@
 | Auth | Clerk (`@clerk/nextjs`, `@clerk/ui`) | Authentication, user management, route protection |
 | Icons | lucide-react | Icon system across all components |
 | Route Protection | `proxy.ts` (not `middleware.ts`) | Clerk middleware at project root |
+| Canvas | React Flow (`@xyflow/react`) + Liveblocks (`@liveblocks/react-flow`) | Collaborative canvas with synced nodes/edges |
+| Realtime | Liveblocks (`@liveblocks/client`, `@liveblocks/react`, `@liveblocks/node`) | Presence, cursors, storage sync |
 
 ## System Boundaries
 
@@ -16,15 +18,18 @@
 - `app/(auth)/` — Auth route group: passthrough layout, no editor chrome. Sign-in/sign-up pages
 - `app/(app)/` — App route group: wrapped in `EditorShell` for editor chrome (future specs)
 - `app/editor/` — Editor home screen with project creation
-- `components/editor/` — Editor chrome components (navbar, sidebar, dialogs, shell, hooks)
+- `app/editor/[projectId]/` — Workspace route with Liveblocks canvas
+- `components/editor/` — Editor chrome components (navbar, sidebar, dialogs, shell, hooks, canvas, shape-panel)
 - `components/ui/` — shadcn/ui primitives — do not modify after installation
-- `lib/` — Utility functions (`cn` class merger)
+- `lib/` — Utility functions (`cn` class merger, Liveblocks client, project access)
+- `types/` — Shared type definitions (e.g., `canvas.ts`)
 - `context/` — Project context files (specs, progress tracker, standards)
 
 ## Storage Model
 
-- **None yet** — All project data is mock/in-memory. No API calls or persistence implemented.
-- Future specs will introduce database layer for project metadata, ownership, and collaboration.
+- **Liveblocks Storage** — Canvas nodes and edges are synced via Liveblocks room storage (realtime, collaborative)
+- **Prisma ORM** — Project metadata, ownership, and collaboration (not yet wired to canvas)
+- Future specs will introduce database layer for canvas persistence
 
 ## Auth and Access Model
 
@@ -47,4 +52,5 @@
 2. No hardcoded hex colors in components — use CSS custom property tokens only
 3. `proxy.ts` (not `middleware.ts`) is the route protection entry point
 4. Editor chrome (`EditorShell`) wraps all non-auth routes; auth pages opt out via `(auth)` route group
-5. Mock data only — no API calls until a spec explicitly introduces persistence
+5. Canvas nodes/edges are synced via Liveblocks — no local-only state for diagram data
+6. Shape-specific node rendering is deferred — all shapes currently render as bordered rectangles
