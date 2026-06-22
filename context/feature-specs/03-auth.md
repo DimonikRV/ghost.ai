@@ -21,13 +21,25 @@ Keep the layout minimal and professional.
 
 ## Implementation
 
-Wrap the root layout with 'ClerkProvider' using Clerk's 'dark' theme.
+Wrap the root layout with `ClerkProvider` using Clerk's `dark` theme.
+
+**Important:** `ClerkProvider` must be placed inside `<body>`, not wrapping `<html>`. This is a Core 3 SDK requirement.
 
 Create sign-in and sign-up pages using Clerk's components. Use catch-all routes (e.g. `[[...rest]]`).
 
-Use 'proxy.ts' at the project root, not 'middleware.ts'.
+Use `proxy.ts` at the project root, not `middleware.ts`.
 
 Define public routes using the existing sign-in and sign-up env vars. Protect everything else by default.
+
+**Middleware pattern:** Use `async (auth, req)` with `await auth.protect()`:
+
+```typescript
+export default clerkMiddleware(async (auth, req) => {
+  if (!isPublicRoute(req)) {
+    await auth.protect();
+  }
+});
+```
 
 Update '/':
 

@@ -15,16 +15,19 @@ interface ProjectSidebarProps {
   onDelete: (project: ProjectItem) => void;
   onCreate: () => void;
   className?: string;
+  activeProjectId?: string;
 }
 
 function ProjectItemRow({
   project,
   onRename,
   onDelete,
+  isActive,
 }: {
   project: ProjectItem;
   onRename: (project: ProjectItem) => void;
   onDelete: (project: ProjectItem) => void;
+  isActive?: boolean;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -40,7 +43,12 @@ function ProjectItemRow({
   const slug = slugify(project.name) || project.id;
 
   return (
-    <div className="group flex items-center justify-between rounded-md px-3 py-2 hover:bg-accent/50">
+    <div
+      className={cn(
+        "group flex items-center justify-between rounded-md px-3 py-2 hover:bg-accent/50",
+        isActive && "bg-accent/50",
+      )}
+    >
       <div className="flex flex-col overflow-hidden">
         <span className="truncate text-sm font-medium">{project.name}</span>
         <span className="truncate text-xs text-muted-foreground">/{slug}</span>
@@ -101,6 +109,7 @@ export function ProjectSidebar({
   onDelete,
   onCreate,
   className,
+  activeProjectId,
 }: ProjectSidebarProps) {
   return (
     <>
@@ -151,6 +160,7 @@ export function ProjectSidebar({
                   project={project}
                   onRename={onRename}
                   onDelete={onDelete}
+                  isActive={project.id === activeProjectId}
                 />
               ))
             )}
@@ -166,6 +176,7 @@ export function ProjectSidebar({
                   project={project}
                   onRename={onRename}
                   onDelete={onDelete}
+                  isActive={project.id === activeProjectId}
                 />
               ))
             )}
