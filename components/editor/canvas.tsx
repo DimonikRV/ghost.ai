@@ -34,12 +34,8 @@ import "@xyflow/react/dist/style.css";
 import "@liveblocks/react-ui/styles.css";
 import "@liveblocks/react-flow/styles.css";
 
-let shapeCounter = 0;
-
 function generateNodeId(shape: ShapeType): string {
-  const timestamp = Date.now();
-  shapeCounter += 1;
-  return `${shape}-${timestamp}-${shapeCounter}`;
+  return `${shape}-${crypto.randomUUID()}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -253,8 +249,8 @@ function CanvasEdge(props: EdgeProps) {
     borderRadius: 16,
   });
 
-  const baseStroke = "#fff";
-  const hoverStroke = "#fff";
+  const baseStroke = "var(--color-foreground)";
+  const hoverStroke = "var(--color-foreground)";
   const strokeColor = hovered ? hoverStroke : baseStroke;
   const opacity = hovered ? 1 : 0.8;
 
@@ -778,7 +774,7 @@ export function Canvas() {
               type: "arrowclosed",
               width: 16,
               height: 16,
-              color: "#fff",
+              color: "var(--color-foreground)",
             },
           }}
           connectionLineStyle={{ stroke: "var(--color-foreground)", strokeWidth: 2, opacity: 0.6 }}

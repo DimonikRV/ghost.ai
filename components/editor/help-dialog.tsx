@@ -8,7 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { CANNVAS_TEMPLATES } from "./starter-templates";
+import { CANVAS_TEMPLATES } from "./starter-templates";
 
 interface HelpDialogProps {
   open: boolean;
@@ -54,7 +54,7 @@ export function HelpDialog({ open, onOpenChange }: HelpDialogProps) {
                 Available Templates
               </h3>
               <div className="space-y-3">
-                {CANNVAS_TEMPLATES.map((t) => (
+                {CANVAS_TEMPLATES.map((t) => (
                   <div key={t.id} className="rounded-md border border-border bg-card p-3">
                     <h4 className="text-sm font-medium text-foreground">{t.name}</h4>
                     <p className="text-xs text-muted-foreground mt-0.5">{t.description}</p>

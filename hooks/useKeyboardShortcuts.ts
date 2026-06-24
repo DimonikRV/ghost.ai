@@ -44,13 +44,6 @@ export function useKeyboardShortcuts({
         return;
       }
 
-      // Cmd/Ctrl+Y to fit view
-      if (isCmdOrCtrl && key === "y") {
-        e.preventDefault();
-        onFitView?.();
-        return;
-      }
-
       // Cmd/Ctrl+Shift+Z to redo
       if (isCmdOrCtrl && e.shiftKey && key === "z") {
         e.preventDefault();

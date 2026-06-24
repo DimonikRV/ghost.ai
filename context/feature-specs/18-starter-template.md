@@ -6,8 +6,8 @@ Add a small starter template library so users can start a canvas from a pre-buil
 
    Include:
    - a 'CanvasTemplate' type
-   - a 'CANNVAS_TEMPLATES' array
-   - at least three templates, such as microservices, CI/CD pipline, and event-driven system
+   - a 'CANVAS_TEMPLATES' array
+   - at least three templates, such as microservices, CI/CD pipeline, and event-driven system
 
    Each template should include:
    - id: string

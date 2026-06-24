@@ -67,7 +67,7 @@ function edge(
   };
 }
 
-export const CANNVAS_TEMPLATES: CanvasTemplate[] = [
+export const CANVAS_TEMPLATES: CanvasTemplate[] = [
   {
     id: "microservices",
     name: "Microservices Architecture",

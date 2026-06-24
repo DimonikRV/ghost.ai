@@ -86,7 +86,7 @@ Update this file after every meaningful implementation change.
   - `components/editor/starter-templates.ts` — template data layer:
     - `CanvasTemplate` type with `id`, `name`, `description`, `nodes`, `edges`
     - `DiagramNode` and `DiagramEdge` types for template structure
-    - `CANNVAS_TEMPLATES` array with 3 templates: Microservices Architecture, CI/CD Pipeline, Event-Driven System
+    - `CANVAS_TEMPLATES` array with 3 templates: Microservices Architecture, CI/CD Pipeline, Event-Driven System
     - Each template uses existing shape types and CSS color tokens
     - Small helper functions (`node()`, `edge()`) for readable template data
   - `components/editor/starter-templates-modal.tsx` — template selection dialog:

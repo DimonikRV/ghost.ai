@@ -8,7 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { CANNVAS_TEMPLATES, type CanvasTemplate, type DiagramNode, type DiagramEdge } from "./starter-templates";
+import { CANVAS_TEMPLATES, type CanvasTemplate, type DiagramNode, type DiagramEdge } from "./starter-templates";
 
 interface StarterTemplatesModalProps {
   open: boolean;
@@ -121,7 +121,7 @@ function TemplatePreview({ template }: { template: CanvasTemplate }) {
         const charWidth = 0.55; // approximate char width ratio for sans-serif
         const fontSizeByW = availW / (label.length * charWidth);
         const fontSizeByH = availH / 1.4; // line-height ratio
-        const fontSize = Math.min(Math.max(fontSizeByW, fontSizeByH, 5), 14);
+        const fontSize = Math.max(Math.min(fontSizeByW, fontSizeByH), 5);
 
         return (
           <g key={n.id}>
@@ -198,7 +198,7 @@ function TemplateCard({
         <button
           type="button"
           onClick={onImport}
-          className="shrink-0 inline-flex items-center justify-center h-8 px-3 rounded-md text-xs font-medium bg-accent-brand text-background hover:opacity-90 transition-opacity"
+          className="shrink-0 inline-flex items-center justify-center h-8 px-3 rounded-md text-xs font-medium bg-accent text-accent-foreground hover:opacity-90 transition-opacity"
         >
           Import
         </button>
@@ -232,7 +232,7 @@ export function StarterTemplatesModal({
         </DialogHeader>
         <ScrollArea className="max-h-[60vh] pr-2">
           <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
-            {CANNVAS_TEMPLATES.map((template) => (
+            {CANVAS_TEMPLATES.map((template) => (
               <TemplateCard
                 key={template.id}
                 template={template}
