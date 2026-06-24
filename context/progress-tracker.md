@@ -82,6 +82,110 @@ Update this file after every meaningful implementation change.
 
 ## Completed (this session)
 
+- **18-starter-template** — starter template library + import flow:
+  - `components/editor/starter-templates.ts` — template data layer:
+    - `CanvasTemplate` type with `id`, `name`, `description`, `nodes`, `edges`
+    - `DiagramNode` and `DiagramEdge` types for template structure
+    - `CANVAS_TEMPLATES` array with 3 templates: Microservices Architecture, CI/CD Pipeline, Event-Driven System
+    - Each template uses existing shape types and CSS color tokens
+    - Small helper functions (`node()`, `edge()`) for readable template data
+  - `components/editor/starter-templates-modal.tsx` — template selection dialog:
+    - Opens as a Dialog with scrollable grid layout
+    - Template cards show name, description, and lightweight SVG preview
+    - Preview calculates bounds from node positions, draws edges as lines, nodes as rects with labels
+    - Import button calls `onImport` with selected template, then closes
+  - `components/editor/help-dialog.tsx` — "Getting Started" documentation:
+    - Dialog with scrollable content covering: importing templates, available templates, tips & best practices
+    - Lists each template with node/edge counts and descriptions
+  - `components/editor/canvas-control-bar.tsx` — extended with:
+    - "Templates..." button with LayoutGrid icon
+    - Help (?) button with CircleHelp icon for accessing documentation
+  - `components/editor/canvas.tsx` — wired template import:
+    - `setNodes`/`setEdges` from `useReactFlow` for canvas replacement
+    - `handleImportTemplate` callback creates new canvas with template nodes/edges at (0, 0)
+    - No merging — replaces current canvas data entirely
+    - No undo/redo support for import (one-time action per spec)
+    - `StarterTemplatesModal` and `HelpDialog` rendered within canvas component
+  - `npm run build` passes clean
+
+## Completed (this session)
+
+- **17-canvas-ergonomics** — floating control bar + keyboard shortcuts:
+  - `hooks/useKeyboardShortcuts.ts` — hook for canvas keyboard shortcuts:
+    - `+`/`=` zoom in, `-` zoom out (no modifier)
+    - `Cmd/Ctrl+Z` undo, `Cmd/Ctrl+Shift+Z` redo
+    - `Cmd/Ctrl+Y` fit view
+    - Ignores shortcuts while typing in inputs, textareas, or contentEditable elements
+  - `components/editor/canvas-control-bar.tsx` — pill-shaped control bar at bottom-left:
+    - Zoom group: zoom out, fit view, zoom in buttons
+    - History group: undo, redo buttons with `canUndo`/`canRedo` disable state
+    - Disabled buttons visually dimmed (`opacity-40 pointer-events-none`)
+  - `components/editor/canvas.tsx` — wired control bar + keyboard shortcuts:
+    - `useReactFlow` instance for zoom in/out, fit view (300ms animation)
+    - `useUndo`/`useRedo`/`useCanUndo`/`useCanRedo` from `@liveblocks/react` for history
+    - `useKeyboardShortcuts` hooks into window-level keydown events
+    - Control bar rendered absolute bottom-left with `relative` wrapper on canvas container
+  - `npm run build` passes clean
+
+- **16-edge-behavior** — custom edges with connection handles, right-angle routing, inline labels:
+  - `components/editor/canvas.tsx` — extended with:
+    - **Handle styling**: `HandleStyle` component — subtle 8px dots with dark border, hidden by default (`opacity: 0`), fade in on node hover (`opacity: 1` via `onMouseEnter`/`onMouseLeave`)
+    - **Custom edge renderer** (`CanvasEdge`): uses `getSmoothStepPath` for right-angle routing with 16px border radius
+    - **Edge dim/brighten**: light stroke (`var(--color-border)`) at 50% opacity at rest, brightens to `var(--color-foreground)` at 100% on hover
+    - **Thick hit area**: invisible 20px stroke-width path overlay for easier hover/click without increasing visible line thickness
+    - **Arrowhead**: `defaultEdgeOptions.markerEnd` with `arrowclosed` type (16×16)
+    - **Inline edge labels**: `EdgeLabelRenderer` + `getSmoothStepPath` midpoint coordinates — no manual calculation
+    - **Edge label editing**: double-click edge to edit label in place, auto-sizing input, Escape to cancel, blur to commit
+    - **Collaborative sync**: edge label updates via `updateEdge` on every keystroke, syncs via Liveblocks Storage
+    - **Edge type wiring**: `edgeTypes` map with `canvasEdge` → `CanvasEdge`, `defaultEdgeOptions.type` ensures new connections use custom renderer
+  - `tsc --noEmit` passes clean
+
+- **15-nodes-color-toolbar** — floating color toolbar for selected nodes:
+  - `types/canvas.ts` — extended `CanvasNodeData` with `bgColor?` and `textColor?` fields; added `NODE_COLOR_PALETTE` constant with 5 predefined color pairs using CSS variable tokens (slate, accent, muted, secondary, destructive)
+  - `components/editor/canvas.tsx` — extended CanvasNode with:
+    - **Color rendering**: `CssShape` and `SvgShape` now accept `backgroundColor` prop (defaulting to `var(--color-card)`), replacing hardcoded `var(--color-card)` fills
+    - **Text color**: label span uses resolved `textColor` from node data instead of hardcoded `text-foreground`
+    - **NodeToolbar**: floating toolbar above selected nodes using `@xyflow/react`'s built-in `NodeToolbar` component — viewport-aware positioning, no custom positioning needed
+    - **Color swatches**: one button per palette entry showing the background color; active swatch has border + tight glow (box-shadow) matching its text color
+    - **Pointer event isolation**: `onPointerDown` stopPropagation on toolbar wrapper prevents canvas drag/pan during swatch interactions
+    - **Collaborative sync**: swatch click calls `updateNode` to set `bgColor`+`textColor` on node data — syncs via Liveblocks Storage
+    - **Editing exclusion**: toolbar hidden when node is in label-editing mode (`isVisible={selected && !isEditing}`)
+  - `tsc --noEmit` passes clean
+
+- **14-node-editing** — resizing + inline label editing on canvas nodes:
+  - `components/editor/canvas.tsx` — extended CanvasNode with:
+    - **Resizing**: `NodeResizer` from `@xyflow/react` shows handles only on selected nodes, hidden during label editing
+    - Minimum dimensions enforced (60×40) — nodes can't shrink below this
+    - Subtle handle styling: small rounded squares with border matching theme
+    - Resize updates node width/height in data via `updateNode` on every resize tick
+    - **Inline label editing**: double-click label area to activate editing
+    - Centered textarea overlay positioned over the node shape
+    - Placeholder text ("Double-click to edit") when label is empty
+    - Label updates live as user types via `updateNode` — collaborative sync
+    - Editing closes on blur or Escape key (Escape restores previous value)
+    - `onMouseDown`/`onClick` stopPropagation on textarea prevents canvas drag/pan
+    - `LabelEditingContext` communicates editing state from node to Canvas
+    - `panOnDrag` disabled on ReactFlow when any node is being edited
+  - `npm run build` passes clean
+
+- **13-node-shape** — proper shape rendering + drag preview + connection handles:
+  - `components/editor/canvas.tsx` — replaced placeholder CanvasNode with shape-aware rendering:
+    - CSS shapes (rectangle, pill, circle) via `border-radius` on div elements
+    - SVG shapes (diamond, hexagon, cylinder) via inline SVG with proportional scaling
+    - Borders subtle at rest (`var(--color-border)`), brighter when selected (`var(--color-foreground)`)
+    - Node dimensions passed via `data` instead of `style` for type safety
+    - **Added `Handle` components** (both source + target at each cardinal point) for full bidirectional connectivity — required by `@liveblocks/react-flow` multiplayer pattern
+    - **Added `connectionLineStyle`** with `--color-foreground` stroke so the animated connection line is visible on dark theme
+    - Removed unnecessary `onConnect as OnConnect` cast per Liveblocks reference
+  - `components/editor/shape-panel.tsx` — added ghost drag preview:
+    - `GhostPreview` component renders scaled (0.6x) shape matching the dragged type
+    - CSS shapes use dashed border + `border-radius`; SVG shapes use dashed strokes
+    - Preview follows cursor via global `dragover` listener, hidden on `dragend`/`drop`
+    - Preview uses same shape type and default dimensions that will be used on drop
+  - `tsc --noEmit` passes clean
+
+## Completed (this session)
+
 - **11-base-canvas** — Liveblocks-backed React Flow canvas:
   - `types/canvas.ts` — shared canvas types: `ShapeType`, `CanvasNodeData`, `CanvasNodeTypes`, `CanvasEdgeTypes`
   - `components/editor/canvas.tsx` — React Flow canvas wired to Liveblocks state via `useLiveblocksFlow`:
