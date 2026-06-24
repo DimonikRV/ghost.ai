@@ -630,7 +630,7 @@ const LabelEditingContext = createContext({
 });
 
 export function Canvas() {
-  const { screenToFlowPosition, zoomIn, zoomOut, fitView, setNodes, setEdges } = useReactFlow();
+  const { screenToFlowPosition, zoomIn, zoomOut, fitView } = useReactFlow();
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [isEditingLabel, setIsEditingLabel] = useState(false);
@@ -743,8 +743,8 @@ export function Canvas() {
       }));
 
       // Build remove actions for existing nodes and edges
-      const removeNodeChanges = nodes.map((n) => ({ type: "remove" as const, id: n.id }));
-      const removeEdgeChanges = edges.map((e) => ({ type: "remove" as const, id: e.id }));
+      const removeNodeChanges = (nodes as Node[]).map((n) => ({ type: "remove" as const, id: n.id }));
+      const removeEdgeChanges = (edges as unknown as { id: string }[]).map((e) => ({ type: "remove" as const, id: e.id }));
 
       // Build add actions for template nodes and edges
       const addNodeChanges = templateNodes.map((n) => ({ type: "add" as const, item: n }));
