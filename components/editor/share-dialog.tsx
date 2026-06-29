@@ -57,9 +57,12 @@ export function ShareDialog({
   // Reset state when dialog opens/closes
   useEffect(() => {
     if (!open) {
-      setEmail("");
-      setError(null);
-      setCopied(false);
+      const timer = setTimeout(() => {
+        setEmail("");
+        setError(null);
+        setCopied(false);
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [open]);
 

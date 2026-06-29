@@ -21,12 +21,13 @@ import {
   getSmoothStepPath,
 } from "@xyflow/react";
 import { useLiveblocksFlow, Cursors } from "@liveblocks/react-flow";
-import { useCanUndo, useCanRedo, useUndo, useRedo } from "@liveblocks/react";
+import { useCanUndo, useCanRedo, useUndo, useRedo, useUpdateMyPresence } from "@liveblocks/react";
 import { DRAG_DATA_TYPE } from "@/components/editor/shape-panel";
 import { CanvasControlBar } from "@/components/editor/canvas-control-bar";
 import { StarterTemplatesModal } from "@/components/editor/starter-templates-modal";
 import { HelpDialog } from "@/components/editor/help-dialog";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
+import { useCanvasAutosave, type SaveStatus } from "@/hooks/use-canvas-autosave";
 import type { ShapeType } from "@/types/canvas";
 import { NODE_COLOR_PALETTE } from "@/types/canvas";
 import type { CanvasTemplate, DiagramNode, DiagramEdge } from "@/components/editor/starter-templates";
@@ -625,13 +626,36 @@ const LabelEditingContext = createContext({
   setIsEditingLabel: (_v: boolean) => { },
 });
 
-export function Canvas() {
-  const { screenToFlowPosition, zoomIn, zoomOut, fitView } = useReactFlow();
+export function Canvas({
+  projectId,
+  onStatusChange,
+}: {
+  projectId: string;
+  onStatusChange?: (status: SaveStatus) => void;
+}) {
+  const { screenToFlowPosition, zoomIn, zoomOut, fitView, setNodes, setEdges } = useReactFlow();
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [isEditingLabel, setIsEditingLabel] = useState(false);
   const [templatesOpen, setTemplatesOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+
+  const updateMyPresence = useUpdateMyPresence();
+
+  const handleMouseMove = useCallback(
+    (event: React.MouseEvent) => {
+      const position = screenToFlowPosition({
+        x: event.clientX,
+        y: event.clientY,
+      });
+      updateMyPresence({ cursor: position });
+    },
+    [screenToFlowPosition, updateMyPresence]
+  );
+
+  const handleMouseLeave = useCallback(() => {
+    updateMyPresence({ cursor: null });
+  }, [updateMyPresence]);
 
   // Liveblocks history
   const canUndo = useCanUndo();
@@ -649,6 +673,58 @@ export function Canvas() {
         initial: [],
       },
     });
+
+  // Autosave — debounces writes to Vercel Blob via API
+  const saveStatus = useCanvasAutosave(
+    projectId,
+    nodes as unknown[],
+    edges as unknown[]
+  );
+
+  // Report save status to parent
+  useEffect(() => {
+    onStatusChange?.(saveStatus);
+  }, [saveStatus, onStatusChange]);
+
+  // Load saved canvas state on init — only if room is empty
+  const hasLoadedRef = useRef(false);
+  useEffect(() => {
+    if (hasLoadedRef.current) return;
+    // Wait for Liveblocks to settle — if nodes/edges are still empty, try loading
+    const hasNodes = (nodes as unknown[]).length > 0;
+    const hasEdges = (edges as unknown[]).length > 0;
+    if (hasNodes || hasEdges) {
+      hasLoadedRef.current = true;
+      return;
+    }
+
+    const loadSaved = async () => {
+      try {
+        const res = await fetch(`/api/projects/${projectId}/canvas`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (
+          Array.isArray(data.nodes) &&
+          data.nodes.length > 0 &&
+          !hasLoadedRef.current
+        ) {
+          hasLoadedRef.current = true;
+          // Re-check that room is still empty before loading
+          const currentNodes = nodes as unknown[];
+          if (currentNodes.length === 0) {
+            setNodes(data.nodes);
+            if (Array.isArray(data.edges) && data.edges.length > 0) {
+              setEdges(data.edges);
+            }
+          }
+        }
+      } catch {
+        // Silently fail — room will remain empty
+      }
+    };
+
+    loadSaved();
+  }, [projectId, nodes, edges, setNodes, setEdges]);
 
   // Keyboard shortcuts
   useKeyboardShortcuts({
@@ -764,6 +840,8 @@ export function Canvas() {
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
           onDelete={onDelete}
+          onMouseMove={handleMouseMove}
+          onMouseLeave={handleMouseLeave}
           fitView
           connectionMode={ConnectionMode.Loose}
           nodeTypes={nodeTypes}

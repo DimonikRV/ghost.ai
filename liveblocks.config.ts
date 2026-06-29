@@ -4,18 +4,20 @@ declare global {
   interface Liveblocks {
     // Each user's Presence, for useMyPresence, useOthers, etc.
     Presence: {
-      cursor: { x: number; y: number };
-      isThinking: boolean;
+      cursor: { x: number; y: number } | null;
+      thinking: boolean;
     };
 
     // The Storage tree for the room, for useMutation, useStorage, etc.
-    Storage: {};
+    Storage: Record<string, never>;
 
     // Custom user info set when authenticating with a secret key
     UserMeta: {
       id: string;
       info: {
         userId: string;
+        name: string;
+        color: string;
         displayName: string;
         avatarUrl: string;
         role: "owner" | "member" | "guest";
@@ -24,21 +26,13 @@ declare global {
     };
 
     // Custom events, for useBroadcastEvent, useEventListener
-    RoomEvent: {};
+    RoomEvent: Record<string, never>;
 
     // Custom metadata set on threads, for useThreads, useCreateThread, etc.
-    ThreadMetadata: {
-      // Example, attaching coordinates to a thread
-      // x: number;
-      // y: number;
-    };
+    ThreadMetadata: Record<string, never>;
 
     // Custom room info set with resolveRoomsInfo, for useRoomInfo
-    RoomInfo: {
-      // Example, rooms with a title and url
-      // title: string;
-      // url: string;
-    };
+    RoomInfo: Record<string, never>;
   }
 }
 

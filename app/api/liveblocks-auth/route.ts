@@ -71,6 +71,8 @@ export async function POST(req: Request) {
     {
       userInfo: {
         userId,
+        name: displayName,
+        color: cursorColor,
         displayName,
         avatarUrl,
         role,

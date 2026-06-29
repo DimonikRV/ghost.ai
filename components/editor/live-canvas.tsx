@@ -1,14 +1,18 @@
 "use client";
 
-import { LiveblocksProvider, RoomProvider, ClientSideSuspense } from "@liveblocks/react";
+import { useContext } from "react";
+import { ClientSideSuspense } from "@liveblocks/react";
 import { ReactFlowProvider } from "@xyflow/react";
 import { Canvas } from "@/components/editor/canvas";
+import { CanvasSaveStatusContext } from "@/components/editor/workspace-shell";
 
 interface LiveCanvasProps {
   projectId: string;
 }
 
 export function LiveCanvas({ projectId }: LiveCanvasProps) {
+  const onStatusChange = useContext(CanvasSaveStatusContext);
+
   if (!projectId) {
     return (
       <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">
@@ -18,32 +22,16 @@ export function LiveCanvas({ projectId }: LiveCanvasProps) {
   }
 
   return (
-    <LiveblocksProvider
-      authEndpoint={async (roomId) => {
-        const res = await fetch("/api/liveblocks-auth", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ roomId }),
-        });
-        return await res.json();
-      }}
+    <ClientSideSuspense
+      fallback={
+        <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">
+          Loading canvas…
+        </div>
+      }
     >
-      <RoomProvider
-        id={projectId}
-        initialPresence={{ cursor: { x: 0, y: 0 }, isThinking: false }}
-      >
-        <ClientSideSuspense
-          fallback={
-            <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">
-              Loading canvas…
-            </div>
-          }
-        >
-          <ReactFlowProvider>
-            <Canvas />
-          </ReactFlowProvider>
-        </ClientSideSuspense>
-      </RoomProvider>
-    </LiveblocksProvider>
+      <ReactFlowProvider>
+        <Canvas projectId={projectId} onStatusChange={onStatusChange ?? undefined} />
+      </ReactFlowProvider>
+    </ClientSideSuspense>
   );
 }

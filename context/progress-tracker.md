@@ -82,6 +82,61 @@ Update this file after every meaningful implementation change.
 
 ## Completed (this session)
 
+- **21-canvas-autosave** — autosave and loading for collaborative canvas via Vercel Blob:
+  - `@vercel/blob` installed as dependency
+  - Reused existing `canvasJsonPath` field on `Project` model for storing blob URL (no migration)
+  - `app/api/projects/[projectId]/canvas/route.ts` — combined PUT + GET route:
+    - PUT: accepts `{ nodes, edges }`, serializes to JSON, uploads to Vercel Blob with project-scoped key, stores URL in Prisma
+    - GET: reads blob URL from Prisma, fetches JSON from Vercel Blob, returns parsed canvas state; returns empty arrays if no saved state
+    - Both routes gated with `auth()` + `checkProjectAccess()`, proper 401/403/404/500 responses
+  - `hooks/use-canvas-autosave.ts` — autosave hook:
+    - Accepts `projectId`, `nodes`, `edges` parameters
+    - 2-second debounce via `setTimeout` with cleanup on unmount
+    - Exposes save status: `'idle' | 'saving' | 'saved' | 'error'`
+    - Uses refs to always read latest nodes/edges in debounced callback
+  - `components/editor/canvas.tsx` — wired autosave + load-saved-state:
+    - `useCanvasAutosave` hook called with canvas nodes/edges
+    - Save status reported to parent via `onStatusChange` callback
+    - On init: checks if Liveblocks room is empty; if so, fetches saved state from GET canvas API and loads via `setNodes`/`setEdges`
+    - Skip load if room already has nodes/edges to avoid overwriting active collaboration
+  - `components/editor/live-canvas.tsx` — passes `projectId` and consumes `CanvasSaveStatusContext` for status callback
+  - `components/editor/workspace-shell.tsx` — save status indicator in navbar:
+    - `CanvasSaveStatusContext` created and provided around children
+    - Small text badge between AI toggle and PresenceAvatars: "Saving…", "Saved", or "Error" with appropriate color classes
+  - `npm run build` passes clean
+
+- **20-ai-sidebar-shell** — AI sidebar component with tabs, chat UI, and specs tab:
+  - `components/editor/ai-sidebar.tsx` — new component extracted from placeholder:
+    - **Floating right sidebar**: `fixed top-12 right-0 bottom-0 z-30 w-80`, `bg-card/95`, `border-l border-border`, `shadow-lg`
+    - **Slide animation**: transition-based (`translate-x-full` ↔ `translate-x-0`, `duration-200`) instead of conditional mount/unmount
+    - **Mobile backdrop scrim**: `fixed inset-0 z-20 bg-black/20 md:bg-black/0`, click to close
+    - **Header**: Bot icon (accent-brand), "AI Workspace" title, "Collaborate with Ghost AI" subtitle, close button
+    - **Tabbed layout**: shadcn Tabs with "AI Architect" and "Specs" tabs
+    - **AI Architect tab**:
+      - ScrollArea for chat messages
+      - Empty state: Bot icon, description, 3 starter prompt chips (`bg-muted`, `text-accent-foreground`)
+      - Starter chips: "Design an e-commerce backend", "Create a chat app architecture", "Build a CI/CD pipeline"
+      - User messages: right-aligned, `bg-accent-brand/20 border-accent-brand/50 border-2 text-foreground`
+      - Assistant messages: left-aligned, `bg-card border border-border text-accent-foreground`
+      - Auto-resizing Textarea (72px min, 160px max height)
+      - Send button: `bg-accent-brand text-white`, Enter submits, Shift+Enter newline
+    - **Specs tab**:
+      - "Generate Spec" button (`bg-accent-brand text-white`)
+      - Demo spec card (`bg-card`, `border-border`) with FileText icon, title, snippet, disabled Download action
+  - `components/editor/workspace-shell.tsx` — replaced inline placeholder with `<AiSidebar>` component, wired `aiSidebarOpen`/`onClose` props, mounted behind `mounted` guard
+  - `tsc --noEmit` passes clean, lint clean on new/changed files
+
+## Completed (this session)
+
+- **20-ai-sidebar-shell** — spec review completed:
+  - Replaced 11 non-existent CSS tokens with actual shadcn/theme tokens
+  - Added transition-based animation spec (was conditional mount/unmount)
+  - Added mobile backdrop scrim for consistency with ProjectSidebar
+  - Fixed button colors: `bg-accent` → `bg-accent-brand` for visibility
+  - Clarified component API: `isOpen`/`onClose` props matching ProjectSidebar pattern
+
+## Completed (this session)
+
 - **18-starter-template** — starter template library + import flow:
   - `components/editor/starter-templates.ts` — template data layer:
     - `CanvasTemplate` type with `id`, `name`, `description`, `nodes`, `edges`
