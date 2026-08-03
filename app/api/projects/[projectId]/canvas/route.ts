@@ -79,6 +79,16 @@ export async function PUT(
     );
   }
 
+  const MAX_CANVAS_BYTES = 1_000_000;
+
+  function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === "object" && value !== null;
+  }
+
+  function hasStringId(value: unknown): boolean {
+    return isRecord(value) && typeof value.id === "string";
+  }
+
   if (!Array.isArray(body.nodes) || !Array.isArray(body.edges)) {
     return NextResponse.json(
       { error: "Body must contain nodes and edges arrays" },
@@ -86,7 +96,20 @@ export async function PUT(
     );
   }
 
+  if (!body.nodes.every(hasStringId) || !body.edges.every(hasStringId)) {
+    return NextResponse.json(
+      { error: "Canvas nodes and edges must contain string ids" },
+      { status: 400 }
+    );
+  }
+
   const canvasData = JSON.stringify({ nodes: body.nodes, edges: body.edges });
+  if (new TextEncoder().encode(canvasData).length > MAX_CANVAS_BYTES) {
+    return NextResponse.json(
+      { error: "Canvas payload is too large" },
+      { status: 413 }
+    );
+  }
   const blobKey = `canvas-${projectId}.json`;
 
   try {

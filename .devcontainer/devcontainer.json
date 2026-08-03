@@ -1,0 +1,35 @@
+{
+  "name": "Ghost Pilot",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "forwardPorts": [3000, 3030],
+  "runArgs": ["--sysctl", "fs.inotify.max_user_watches=524288"],
+  "postCreateCommand": "npm install",
+  "postStartCommand": "bash ./scripts/launch.sh",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "bradlc.vscode-tailwindcss",
+        "prisma.prisma",
+        "mgmcdermott.vscode-language-babel",
+        "esbenp.prettier-vscode"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "files.watcherExclude": {
+          "**/.next/**": true,
+          "**/node_modules/**": true
+        }
+      }
+    }
+  },
+  "remoteEnv": {
+    "NODE_ENV": "development"
+  },
+  "containerEnv": {
+    "CHOKIDAR_USEPOLLING": "0",
+    "WATCHPACK_POLLING": "false"
+  }
+}

@@ -1,0 +1,45 @@
+# dependencies
+node_modules
+
+# next.js build output
+.next
+out
+
+# production
+build
+
+# testing
+coverage
+test-results
+playwright-report
+blob-report
+playwright/.cache
+
+# env files (never bake secrets into images)
+.env
+.env.*
+!.env.example
+
+# git / vcs
+.git
+.gitignore
+.gitattributes
+
+# tooling / agent config (not needed at runtime)
+.devcontainer
+.vscode
+.agents
+.claude
+.gemini
+.opencode
+
+# prisma local state
+.prisma
+app/generated/prisma
+
+# misc
+scratch
+wsl
+*.tsbuildinfo
+*.md
+npm-debug.log*

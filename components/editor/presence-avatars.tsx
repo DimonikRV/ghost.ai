@@ -16,10 +16,20 @@ export function PresenceAvatars() {
   const { user } = useUser();
   const others = useOthers();
 
-  // Filter out any presence entry whose Clerk user ID matches the current user
-  const collaborators = others.filter(
-    (other) => other.info?.userId && other.info?.userId !== user?.id
-  );
+  // Filter out any presence entry whose Clerk user ID matches the current user,
+  // then deduplicate by userId so a collaborator with multiple tabs/devices
+  // renders as a single avatar chip.
+  const collaborators = others
+    .filter(
+      (other) => other.info?.userId && other.info?.userId !== user?.id
+    )
+    .reduce<Array<(typeof others)[number]>>((acc, other) => {
+      const uid = other.info.userId as string;
+      if (!acc.some((entry) => (entry.info.userId as string) === uid)) {
+        acc.push(other);
+      }
+      return acc;
+    }, []);
 
   const maxVisible = 5;
   const visibleCollaborators = collaborators.slice(0, maxVisible);
@@ -39,7 +49,7 @@ export function PresenceAvatars() {
 
               return (
                 <div
-                  key={other.connectionId}
+                  key={other.info?.userId as string}
                   className="relative inline-flex h-8 w-8 select-none items-center justify-center rounded-full bg-card text-xs font-semibold text-foreground ring-2 ring-background overflow-hidden border"
                   style={{ borderColor: ringColor }}
                   title={displayName}

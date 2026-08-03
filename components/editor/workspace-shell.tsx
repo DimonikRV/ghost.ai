@@ -126,6 +126,9 @@ export function WorkspaceShell({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ roomId }),
         });
+        if (!res.ok) {
+          throw new Error(await res.text());
+        }
         return await res.json();
       }}
     >

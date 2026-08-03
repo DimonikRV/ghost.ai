@@ -1,0 +1,34 @@
+# Ghost Pilot — self-hosted deployment
+# Usage on the VPS:
+#   docker compose pull app
+#   docker compose up -d app
+#
+# Environment: create `.env.production` in this directory from
+# `.env.example`. Never commit real secrets.
+services:
+  app:
+    image: ghcr.io/dimonikrv/ghost-pilot:latest
+    # Uncomment to build locally instead of pulling:
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env.production
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

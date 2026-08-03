@@ -1,8 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Skill(liveblocks-best-practices)"
-    ]
-  },
-  "$version": 4
-}

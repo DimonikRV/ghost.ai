@@ -91,7 +91,7 @@ export function AiSidebar({ isOpen, onClose }: AiSidebarProps) {
       {/* Mobile backdrop scrim */}
       {isOpen && (
         <div
-          className="fixed inset-0 z-20 bg-black/20 md:bg-black/0"
+          className="fixed inset-0 z-20 bg-black/20 md:hidden"
           onClick={onClose}
           aria-hidden="true"
         />
@@ -103,6 +103,7 @@ export function AiSidebar({ isOpen, onClose }: AiSidebarProps) {
           "fixed top-12 right-0 bottom-0 z-30 flex w-80 flex-col bg-card/95 border-l border-border shadow-lg transition-transform duration-200 ease-in-out md:shadow-none",
           isOpen ? "translate-x-0" : "translate-x-full"
         )}
+        {...(!isOpen && { inert: true, "aria-hidden": "true" })}
       >
         {/* Header */}
         <div className="flex h-12 shrink-0 items-center gap-2 px-4 border-b border-border">

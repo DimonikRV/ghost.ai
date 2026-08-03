@@ -633,7 +633,7 @@ export function Canvas({
   projectId: string;
   onStatusChange?: (status: SaveStatus) => void;
 }) {
-  const { screenToFlowPosition, zoomIn, zoomOut, fitView, setNodes, setEdges } = useReactFlow();
+  const { screenToFlowPosition, zoomIn, zoomOut, fitView } = useReactFlow();
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [isEditingLabel, setIsEditingLabel] = useState(false);
@@ -674,11 +674,15 @@ export function Canvas({
       },
     });
 
+  // Gate autosave until initial hydration completes
+  const [autosaveEnabled, setAutosaveEnabled] = useState(false);
+
   // Autosave — debounces writes to Vercel Blob via API
   const saveStatus = useCanvasAutosave(
     projectId,
     nodes as unknown[],
-    edges as unknown[]
+    edges as unknown[],
+    autosaveEnabled
   );
 
   // Report save status to parent
@@ -695,6 +699,7 @@ export function Canvas({
     const hasEdges = (edges as unknown[]).length > 0;
     if (hasNodes || hasEdges) {
       hasLoadedRef.current = true;
+      setAutosaveEnabled(true);
       return;
     }
 
@@ -712,19 +717,27 @@ export function Canvas({
           // Re-check that room is still empty before loading
           const currentNodes = nodes as unknown[];
           if (currentNodes.length === 0) {
-            setNodes(data.nodes);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (onNodesChange as (changes: any[]) => void)(
+              data.nodes.map((item: unknown) => ({ type: "add" as const, item }))
+            );
             if (Array.isArray(data.edges) && data.edges.length > 0) {
-              setEdges(data.edges);
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              (onEdgesChange as (changes: any[]) => void)(
+                data.edges.map((item: unknown) => ({ type: "add" as const, item }))
+              );
             }
           }
         }
       } catch {
         // Silently fail — room will remain empty
+      } finally {
+        setAutosaveEnabled(true);
       }
     };
 
     loadSaved();
-  }, [projectId, nodes, edges, setNodes, setEdges]);
+  }, [projectId, nodes, edges, onNodesChange, onEdgesChange]);
 
   // Keyboard shortcuts
   useKeyboardShortcuts({
