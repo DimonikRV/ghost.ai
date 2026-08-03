@@ -8,22 +8,24 @@ test.describe("API Routes", () => {
   });
 
   test("projects API is not accessible unauthenticated", async ({ request }) => {
-    const response = await request.get("/api/projects");
-    expect(response.status()).not.toBe(200);
+    const response = await request.get("/api/projects", { maxRedirects: 0 });
+    expect(response.ok()).toBe(false);
   });
 
   test("liveblocks-auth API is not accessible unauthenticated", async ({ request }) => {
     const response = await request.post("/api/liveblocks-auth", {
       data: {},
+      maxRedirects: 0,
     });
-    expect(response.status()).not.toBe(200);
+    expect(response.ok()).toBe(false);
   });
 
   test("AI design API is not accessible unauthenticated", async ({ request }) => {
     const response = await request.post("/api/ai/design", {
       data: {},
+      maxRedirects: 0,
     });
-    expect(response.status()).not.toBe(200);
+    expect(response.ok()).toBe(false);
   });
 
   test("trigger-test API reports success or failure", async ({ request }) => {
