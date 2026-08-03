@@ -152,17 +152,17 @@ docker compose up -d app
 Registry auth depends on the package visibility:
 
 - **If the GHCR package is public** — no login needed on any machine.
-- **If it is private (default)** — log in first with a token that has
-  `read:packages` (a PAT or a dedicated deploy token):
+- **If it is private (default)** — log in before pulling with a token that has
+  `read:packages`:
 
   ```bash
   echo "$GHCR_PAT" | docker login ghcr.io -u DimonikRV --password-stdin
   ```
 
-  On the VPS, persist the login with
-  `docker login ghcr.io -u DimonikRV --password-stdin` after storing the token
-  (e.g. in `~/.docker/config.json` or the server's secret manager) — otherwise
-  the dormant VPS deploy job's `docker compose pull` will fail.
+  The VPS deploy job handles this automatically: set the `GHCR_PAT` secret
+  (token with `read:packages`) and it runs `docker login` on the VPS before
+  `docker compose pull`. No manual login is required on the server. For manual
+  pulls on other machines, run the same `docker login` once.
 
 ---
 
