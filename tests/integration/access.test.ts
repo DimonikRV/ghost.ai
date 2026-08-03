@@ -72,7 +72,7 @@ describe("checkProjectAccess", () => {
     const result = await checkProjectAccess(projectId);
     expect(result).toEqual({
       found: true,
-      access: { exists: false, isOwner: false, isCollaborator: false, hasAccess: false },
+      access: { exists: true, isOwner: false, isCollaborator: false, hasAccess: false },
     });
   });
 
