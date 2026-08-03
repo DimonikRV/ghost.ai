@@ -13,6 +13,7 @@
     "trigger:dev": "trigger dev",
     "trigger:deploy": "trigger deploy",
     "test": "npx playwright test",
+    "test:integration": "vitest run",
     "test:ui": "npx playwright test --ui",
     "test:headed": "npx playwright test --headed",
     "test:debug": "npx playwright test --debug",
@@ -62,6 +63,7 @@
     "tailwindcss": "^4",
     "trigger.dev": "^4.5.9",
     "tsx": "^4.22.4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.10"
   }
 }
