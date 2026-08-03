@@ -55,14 +55,16 @@ export function useCanvasAutosave(
       setStatus("error");
     } finally {
       inFlightRef.current = false;
-
-      // If a save was queued while this one was in flight, fire it now.
-      if (pendingRef.current) {
-        pendingRef.current = false;
-        save();
-      }
     }
   }, [projectId]);
+
+  // If a save was queued while another was in flight, fire it once that
+  // save completes (driven by the status transition instead of recursion).
+  useEffect(() => {
+    if (!pendingRef.current) return;
+    pendingRef.current = false;
+    void save();
+  }, [save, status]);
 
   useEffect(() => {
     if (!enabled) return;

@@ -232,13 +232,16 @@ function CanvasEdge(props: EdgeProps) {
   const { id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, style = {}, markerEnd } = props;
   const [hovered, setHovered] = useState(false);
   const [editing, setEditing] = useState(false);
-  const [label, setLabel] = useState((props.data as { label?: string } | undefined)?.label ?? "");
+  const edgeDataLabel = (props.data as { label?: string } | undefined)?.label ?? "";
+  const [label, setLabel] = useState(edgeDataLabel);
+  const [prevEdgeLabel, setPrevEdgeLabel] = useState(edgeDataLabel);
   const { updateEdge } = useReactFlow();
 
   // Sync label when edge data changes externally (e.g. collaborative update)
-  useEffect(() => {
-    setLabel((props.data as { label?: string } | undefined)?.label ?? "");
-  }, [props.data]);
+  if (prevEdgeLabel !== edgeDataLabel) {
+    setPrevEdgeLabel(edgeDataLabel);
+    setLabel(edgeDataLabel);
+  }
 
   const [edgePath, labelX, labelY] = getSmoothStepPath({
     sourceX,
@@ -407,7 +410,9 @@ const CanvasNode = forwardRef<HTMLDivElement, NodeProps>(function CanvasNode(
 
   // Inline label editing state
   const [isEditing, setIsEditing] = useState(false);
-  const [editValue, setEditValue] = useState(nodeData.label ?? "");
+  const nodeLabel = nodeData.label ?? "";
+  const [editValue, setEditValue] = useState(nodeLabel);
+  const [prevNodeLabel, setPrevNodeLabel] = useState(nodeLabel);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -417,9 +422,10 @@ const CanvasNode = forwardRef<HTMLDivElement, NodeProps>(function CanvasNode(
   }, [isEditing]);
 
   // Sync edit value when node label changes externally
-  useEffect(() => {
-    setEditValue(nodeData.label ?? "");
-  }, [nodeData.label]);
+  if (prevNodeLabel !== nodeLabel) {
+    setPrevNodeLabel(nodeLabel);
+    setEditValue(nodeLabel);
+  }
 
   // Report editing state to Canvas for pan-on-drag control
   useEffect(() => {
@@ -694,17 +700,17 @@ export function Canvas({
   const hasLoadedRef = useRef(false);
   useEffect(() => {
     if (hasLoadedRef.current) return;
-    // Wait for Liveblocks to settle — if nodes/edges are still empty, try loading
-    const hasNodes = (nodes as unknown[]).length > 0;
-    const hasEdges = (edges as unknown[]).length > 0;
-    if (hasNodes || hasEdges) {
-      hasLoadedRef.current = true;
-      setAutosaveEnabled(true);
-      return;
-    }
 
     const loadSaved = async () => {
       try {
+        // If Liveblocks already has data, nothing to load — just gate autosave on.
+        const hasNodes = (nodes as unknown[]).length > 0;
+        const hasEdges = (edges as unknown[]).length > 0;
+        if (hasNodes || hasEdges) {
+          hasLoadedRef.current = true;
+          return;
+        }
+
         const res = await fetch(`/api/projects/${projectId}/canvas`);
         if (!res.ok) return;
         const data = await res.json();
@@ -736,7 +742,7 @@ export function Canvas({
       }
     };
 
-    loadSaved();
+    void loadSaved();
   }, [projectId, nodes, edges, onNodesChange, onEdgesChange]);
 
   // Keyboard shortcuts
