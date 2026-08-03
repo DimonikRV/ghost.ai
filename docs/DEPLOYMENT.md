@@ -138,6 +138,32 @@ git push origin main               # CI + CD run (production deploy)
 - **Tasks**: Trigger.dev dashboard → your project → Deployments shows the new
   deployment.
 
+### Pulling the image from GHCR
+
+The image is `ghcr.io/dimonikrv/ghost-pilot` (`latest` + `sha-*` tags).
+`docker-compose.yml` already references `ghcr.io/dimonikrv/ghost-pilot:latest`,
+so deployment is pull-based:
+
+```bash
+docker compose pull app
+docker compose up -d app
+```
+
+Registry auth depends on the package visibility:
+
+- **If the GHCR package is public** — no login needed on any machine.
+- **If it is private (default)** — log in first with a token that has
+  `read:packages` (a PAT or a dedicated deploy token):
+
+  ```bash
+  echo "$GHCR_PAT" | docker login ghcr.io -u DimonikRV --password-stdin
+  ```
+
+  On the VPS, persist the login with
+  `docker login ghcr.io -u DimonikRV --password-stdin` after storing the token
+  (e.g. in `~/.docker/config.json` or the server's secret manager) — otherwise
+  the dormant VPS deploy job's `docker compose pull` will fail.
+
 ---
 
 ## Enable VPS deployment later (optional)
@@ -173,7 +199,7 @@ When you're ready to run the app on a server:
 | CI fails at `npm ci` | Stale lockfile — rerun Step 1, or the workflow still uses `npm ci`. |
 | CD `build-push` fails | A `CLERK_*` secret is missing/empty — check Step 2. |
 | CD `migrate` fails | `DATABASE_URL` secret wrong or unreachable. |
-| CD `trigger-deploy` fails | `TRIGGER_PROJECT_REF`/`TRIGGER_SECRET_KEY` missing or expired. |
+| CD `trigger-deploy` fails | `TRIGGER_ACCESS_TOKEN` missing/expired (required to authenticate the CLI; `TRIGGER_PROJECT_REF`/`TRIGGER_SECRET_KEY` identify the project but do not log you in). |
 | Deploy job shows "skipped" | Expected — VPS deploy is dormant. Set `ENABLE_VPS_DEPLOY=true` to enable. |
 | E2E failures on auth pages | Invalid `CI_CLERK_PUBLISHABLE_KEY` or dummy fallback used. |
 | Rollback | Re-run a previous commit: Actions → the `cd` workflow → **Run workflow** → choose the commit, or redeploy an old image tag (`ghcr.io/dimonikrv/ghost-pilot:sha-<old>`). |
