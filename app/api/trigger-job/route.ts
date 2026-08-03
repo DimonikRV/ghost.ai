@@ -17,7 +17,6 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       runId: handle.id,
-      status: handle.status,
     });
   } catch (error) {
     console.error("Failed to trigger background job:", error);

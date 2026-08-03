@@ -13,7 +13,6 @@ export async function GET() {
     return NextResponse.json({
       success: true,
       runId: handle.id,
-      status: handle.status,
     });
   } catch (error) {
     console.error("Failed to trigger task:", error);
