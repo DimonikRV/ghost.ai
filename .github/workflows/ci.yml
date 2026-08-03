@@ -33,10 +33,11 @@ jobs:
     env:
       CI: "true"
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/ghost_pilot_test
-      # Public keys are required at build time. Real values come from
+      # Clerk keys are required at build/run time. Real values come from
       # repo secrets; safe placeholders keep the pipeline green when
       # they are not configured yet (auth flows are not E2E-tested).
       NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.CI_CLERK_PUBLISHABLE_KEY || 'pk_test_dummy' }}
+      CLERK_SECRET_KEY: ${{ secrets.CI_CLERK_SECRET_KEY || 'sk_test_dummy' }}
       NEXT_PUBLIC_CLERK_SIGN_IN_URL: /sign-in
       NEXT_PUBLIC_CLERK_SIGN_UP_URL: /sign-up
       NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL: /editor
