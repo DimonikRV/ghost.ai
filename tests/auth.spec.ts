@@ -16,8 +16,6 @@ test.describe("Auth Pages", () => {
   test("sign-in page has Clerk components", async ({ page }) => {
     await page.goto("/sign-in");
     await page.waitForLoadState("networkidle");
-    const clerkRoot = page.locator("[data-clerk-id], .clerkcomponents,");
-    const hasClerk = (await clerkRoot.count()) > 0;
-    expect(hasClerk || true).toBeTruthy();
+    await expect(page.locator(".cl-rootBox")).toBeVisible();
   });
 });
