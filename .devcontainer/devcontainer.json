@@ -3,8 +3,11 @@
   "build": {
     "dockerfile": "Dockerfile"
   },
-  "forwardPorts": [3000, 3030],
-  "runArgs": ["--sysctl", "fs.inotify.max_user_watches=524288"],
+  "remoteUser": "root",
+  "forwardPorts": [
+    3000,
+    3030
+  ],
   "postCreateCommand": "npm install",
   "postStartCommand": "bash ./scripts/launch.sh",
   "customizations": {
@@ -29,7 +32,7 @@
     "NODE_ENV": "development"
   },
   "containerEnv": {
-    "CHOKIDAR_USEPOLLING": "0",
-    "WATCHPACK_POLLING": "false"
+    "CHOKIDAR_USEPOLLING": "1",
+    "WATCHPACK_POLLING": "true"
   }
 }
