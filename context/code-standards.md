@@ -17,10 +17,13 @@
 
 ## Next.js
 
+- Next.js 16 (App Router). Read the version-matched docs in `node_modules/next/dist/docs/` before writing framework code — several APIs changed vs earlier versions
 - Default to server components — add `"use client"` only when browser interactivity requires it
 - Route handlers should be focused on a single responsibility
 - Use route groups (`(auth)`, `(app)`) for layout separation, not for organization
 - Pages in `app/` are server components unless marked `"use client"`
+- Request APIs are async: `await` `params`, `searchParams`, `cookies()`, `headers()`, `draftMode()`
+- Route protection lives in `proxy.ts` (the Next.js 16 replacement for `middleware.ts`)
 
 ## Styling
 

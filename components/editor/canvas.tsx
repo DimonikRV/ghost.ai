@@ -627,9 +627,12 @@ const edgeTypes = {
 };
 
 // Context to communicate label editing state from nodes to the Canvas
-const LabelEditingContext = createContext({
+const LabelEditingContext = createContext<{
+  isEditingLabel: boolean;
+  setIsEditingLabel: (value: boolean) => void;
+}>({
   isEditingLabel: false,
-  setIsEditingLabel: (_v: boolean) => { },
+  setIsEditingLabel: () => {},
 });
 
 export function Canvas({
@@ -641,7 +644,7 @@ export function Canvas({
 }) {
   const { screenToFlowPosition, zoomIn, zoomOut, fitView } = useReactFlow();
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
-  const [isDragOver, setIsDragOver] = useState(false);
+  const [, setIsDragOver] = useState(false);
   const [isEditingLabel, setIsEditingLabel] = useState(false);
   const [templatesOpen, setTemplatesOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);

@@ -8,7 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { CANVAS_TEMPLATES, type CanvasTemplate, type DiagramNode, type DiagramEdge } from "./starter-templates";
+import { CANVAS_TEMPLATES, type CanvasTemplate } from "./starter-templates";
 
 interface StarterTemplatesModalProps {
   open: boolean;

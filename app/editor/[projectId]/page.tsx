@@ -6,6 +6,7 @@ import { WorkspaceShell } from "@/components/editor/workspace-shell";
 import { AccessDenied } from "@/components/editor/access-denied";
 import { ProjectNotFound } from "@/components/editor/project-not-found";
 import { LiveCanvas } from "@/components/editor/live-canvas";
+import { EditorErrorBoundary } from "@/components/editor/editor-error-boundary";
 
 export default async function WorkspacePage({
   params,
@@ -55,7 +56,9 @@ export default async function WorkspacePage({
       isOwner={isOwner}
       collaborators={collaborators}
     >
-      <LiveCanvas projectId={project.id} />
+      <EditorErrorBoundary label="Canvas failed to load">
+        <LiveCanvas projectId={project.id} />
+      </EditorErrorBoundary>
     </WorkspaceShell>
   );
 }

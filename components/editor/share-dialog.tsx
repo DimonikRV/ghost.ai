@@ -11,7 +11,7 @@ import {
 } from "@/components/editor/dialog-pattern";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, Copy, CopyCheck, Mail, UserMinus, Link as LinkIcon } from "lucide-react";
+import { Loader2, Copy, CopyCheck, Mail, UserMinus } from "lucide-react";
 
 export interface Collaborator {
   id: string;

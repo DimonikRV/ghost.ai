@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Standalone dev/CLI scripts (not app code).
     "scripts/**",
+    // Trigger.dev local dev state (generated build artifacts).
+    ".trigger/**",
   ]),
 ]);
 

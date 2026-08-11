@@ -1,4 +1,4 @@
-import { auth, clerkClient, currentUser } from "@clerk/nextjs/server";
+import { auth, clerkClient } from "@clerk/nextjs/server";
 import type { EmailAddress } from "@clerk/backend";
 import { checkProjectAccess } from "@/lib/project-access";
 import { NextRequest, NextResponse } from "next/server";
@@ -206,19 +206,6 @@ export async function DELETE(
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
-
-async function getCurrentUserEmail(): Promise<{ email: string | null } | null> {
-  const { userId } = await auth();
-  if (!userId) return null;
-  try {
-    const client = await clerkClient();
-    const user = await client.users.getUser(userId);
-    const primaryEmail = getPrimaryEmail(user.emailAddresses, user.primaryEmailAddressId);
-    return { email: primaryEmail?.emailAddress ?? null };
-  } catch {
-    return { email: null };
-  }
-}
 
 async function getOwnerEmail(ownerId: string): Promise<string | null> {
   try {
