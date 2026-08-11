@@ -3,20 +3,20 @@
 # ============================================================
 # Ghost Pilot — production image (Next.js 16 standalone)
 # Multi-stage: deps -> builder -> runner
-# Uses node:22-slim to match the devcontainer (zero drift).
+# Uses node:24-slim to match the devcontainer (zero drift).
 # Prisma 7 uses a Rust-free client (driver adapter), so no
 # engine binaries are required in the runtime image.
 # ============================================================
 
 # ---------- Stage 1: deps ----------
-FROM node:22-slim AS deps
+FROM node:24-slim AS deps
 WORKDIR /app
 
 COPY package.json package-lock.json ./
 RUN npm install --no-audit --no-fund
 
 # ---------- Stage 2: builder ----------
-FROM node:22-slim AS builder
+FROM node:24-slim AS builder
 WORKDIR /app
 
 ENV NEXT_TELEMETRY_DISABLED=1
@@ -50,7 +50,7 @@ RUN npx prisma generate
 RUN npm run build
 
 # ---------- Stage 3: runner ----------
-FROM node:22-slim AS runner
+FROM node:24-slim AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production

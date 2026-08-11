@@ -116,6 +116,7 @@ export async function PUT(
     const blob = await put(blobKey, canvasData, {
       access: "private",
       addRandomSuffix: false,
+      allowOverwrite: true,
     });
 
     await prisma.project.update({

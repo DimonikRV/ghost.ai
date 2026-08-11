@@ -29,10 +29,10 @@ deployment files: `Dockerfile`, `.dockerignore`, `docker-compose.yml`,
 ## Docker build rules
 
 - Multi-stage: `deps` (npm install) → `builder` (prisma generate + `npm run build`) →
-  `runner` (`node:22-slim`, non-root `node` user).
+  `runner` (`node:24-slim`, non-root `node` user).
 - Runner must set `NODE_ENV=production`, `HOSTNAME=0.0.0.0`, `PORT=3000` and run
   `node server.js` (never `npm start` — signals).
-- `node:22-slim` (glibc) — matches the devcontainer; do not switch to Alpine
+- `node:24-slim` (glibc) — matches the devcontainer; do not switch to Alpine
   unless you re-verify native deps.
 - `.env*` is dockerignored. Use `--build-arg` for `NEXT_PUBLIC_*` only.
 

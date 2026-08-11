@@ -13,7 +13,7 @@ import { defineConfig } from "@trigger.dev/sdk";
 export default defineConfig({
   project: "<project-ref>", // Required: Your project reference
   dirs: ["./trigger"], // Task directories
-  runtime: "node", // "node", "node-22", or "bun"
+  runtime: "node", // "node", "node-22", "node-24", or "bun"
   logLevel: "info", // "debug", "info", "warn", "error"
 
   // Default retry settings

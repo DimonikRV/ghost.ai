@@ -7,7 +7,7 @@ export default defineConfig({
   project: process.env.TRIGGER_PROJECT_REF!,
   dirs: ["trigger"],
   maxDuration: 3600,
-  runtime: "node",
+  runtime: "node-24",
   logLevel: "info",
   retries: {
     enabledInDev: false,
