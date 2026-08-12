@@ -9,7 +9,7 @@
     3030
   ],
   "postCreateCommand": "npm install",
-  "postStartCommand": "bash ./scripts/launch.sh",
+  "postStartCommand": "nohup bash ./scripts/launch.sh > /tmp/ghost-launch.log 2>&1 &",
   "customizations": {
     "vscode": {
       "extensions": [

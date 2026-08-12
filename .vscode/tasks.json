@@ -1,0 +1,29 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Dev: Tail logs",
+      "type": "shell",
+      "command": "tail",
+      "args": ["-f", "/tmp/ghost-launch.log"],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "Dev: Restart",
+      "type": "shell",
+      "command": "bash",
+      "args": ["-lc", "pkill -f concurrently 2>/dev/null; pkill -f 'next dev' 2>/dev/null; pkill -f 'trigger dev' 2>/dev/null; nohup bash ./scripts/launch.sh > /tmp/ghost-launch.log 2>&1 &"],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    }
+  ]
+}
