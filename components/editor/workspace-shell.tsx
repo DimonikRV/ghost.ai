@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useSyncExternalStore } from "react";
+import { useRouter } from "next/navigation";
 import { PanelLeftOpen, PanelLeftClose, Share2, Bot } from "lucide-react";
 import { ProjectSidebar } from "@/components/editor/project-sidebar";
 import { ShareDialog, type Collaborator } from "@/components/editor/share-dialog";
@@ -55,6 +56,7 @@ export function WorkspaceShell({
   const [shareLoading, setShareLoading] = useState(false);
   const [shareError, setShareError] = useState<string | null>(null);
   const mounted = useMounted();
+  const router = useRouter();
 
   const refreshCollaborators = useCallback(async () => {
     const res = await fetch(`/api/projects/${project.id}/collaborators`);
@@ -209,6 +211,7 @@ export function WorkspaceShell({
             onRename={() => { }}
             onDelete={() => { }}
             onCreate={() => { }}
+            onOpenProject={(project) => router.push(`/editor/${project.id}`)}
             activeProjectId={project.id}
           />
         )}

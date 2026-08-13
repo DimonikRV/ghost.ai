@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useSyncExternalStore } from "react";
+import { useRouter } from "next/navigation";
 import { EditorNavbar } from "@/components/editor/editor-navbar";
 import { ProjectSidebar } from "@/components/editor/project-sidebar";
 import { ProjectActionsProvider, useProjectActionsContext } from "@/components/editor/project-actions-context";
@@ -82,6 +83,7 @@ function EditorShellInner({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const mounted = useMounted();
   const actions = useProjectActionsContext();
+  const router = useRouter();
 
   return (
     <>
@@ -98,6 +100,7 @@ function EditorShellInner({
           onRename={actions.openRename}
           onDelete={actions.openDelete}
           onCreate={actions.openCreate}
+          onOpenProject={(project) => router.push(`/editor/${project.id}`)}
         />
       )}
       <main className="pt-12 min-h-screen">{children}</main>

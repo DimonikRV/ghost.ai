@@ -14,6 +14,7 @@ interface ProjectSidebarProps {
   onRename: (project: ProjectItem) => void;
   onDelete: (project: ProjectItem) => void;
   onCreate: () => void;
+  onOpenProject: (project: ProjectItem) => void;
   className?: string;
   activeProjectId?: string;
 }
@@ -22,11 +23,13 @@ function ProjectItemRow({
   project,
   onRename,
   onDelete,
+  onOpenProject,
   isActive,
 }: {
   project: ProjectItem;
   onRename: (project: ProjectItem) => void;
   onDelete: (project: ProjectItem) => void;
+  onOpenProject: (project: ProjectItem) => void;
   isActive?: boolean;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -44,8 +47,18 @@ function ProjectItemRow({
 
   return (
     <div
+      role="button"
+      tabIndex={0}
+      onClick={() => onOpenProject(project)}
+      onKeyDown={(e) => {
+        if (e.target !== e.currentTarget) return;
+        if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") {
+          e.preventDefault();
+          onOpenProject(project);
+        }
+      }}
       className={cn(
-        "group flex items-center justify-between rounded-md px-3 py-2 hover:bg-accent/50",
+        "group flex cursor-pointer items-center justify-between rounded-md px-3 py-2 hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         isActive && "bg-accent/50",
       )}
     >
@@ -53,7 +66,7 @@ function ProjectItemRow({
         <span className="truncate text-sm font-medium">{project.name}</span>
         <span className="truncate text-xs text-muted-foreground">/{slug}</span>
       </div>
-      <div className="relative shrink-0">
+      <div className="relative shrink-0" onClick={(e) => e.stopPropagation()}>
         <button
           type="button"
           onClick={() => setMenuOpen(!menuOpen)}
@@ -108,6 +121,7 @@ export function ProjectSidebar({
   onRename,
   onDelete,
   onCreate,
+  onOpenProject,
   className,
   activeProjectId,
 }: ProjectSidebarProps) {
@@ -144,15 +158,23 @@ export function ProjectSidebar({
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="my-projects" className="flex flex-1 flex-col overflow-hidden p-3">
+        <Tabs
+          defaultValue="my-projects"
+          className="flex flex-1 flex-col overflow-hidden p-3"
+        >
           <TabsList className="w-full">
             <TabsTrigger value="my-projects">My Projects</TabsTrigger>
             <TabsTrigger value="shared">Shared</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="my-projects" className="flex-1 overflow-y-auto pt-3 space-y-1">
+          <TabsContent
+            value="my-projects"
+            className="flex-1 overflow-y-auto pt-3 space-y-1"
+          >
             {ownedProjects.length === 0 ? (
-              <p className="px-3 py-2 text-sm text-muted-foreground">No projects yet.</p>
+              <p className="px-3 py-2 text-sm text-muted-foreground">
+                No projects yet.
+              </p>
             ) : (
               ownedProjects.map((project) => (
                 <ProjectItemRow
@@ -160,15 +182,21 @@ export function ProjectSidebar({
                   project={project}
                   onRename={onRename}
                   onDelete={onDelete}
+                  onOpenProject={onOpenProject}
                   isActive={project.id === activeProjectId}
                 />
               ))
             )}
           </TabsContent>
 
-          <TabsContent value="shared" className="flex-1 overflow-y-auto pt-3 space-y-1">
+          <TabsContent
+            value="shared"
+            className="flex-1 overflow-y-auto pt-3 space-y-1"
+          >
             {sharedProjects.length === 0 ? (
-              <p className="px-3 py-2 text-sm text-muted-foreground">No shared projects.</p>
+              <p className="px-3 py-2 text-sm text-muted-foreground">
+                No shared projects.
+              </p>
             ) : (
               sharedProjects.map((project) => (
                 <ProjectItemRow
@@ -176,6 +204,7 @@ export function ProjectSidebar({
                   project={project}
                   onRename={onRename}
                   onDelete={onDelete}
+                  onOpenProject={onOpenProject}
                   isActive={project.id === activeProjectId}
                 />
               ))
