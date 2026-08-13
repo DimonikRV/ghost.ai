@@ -2,6 +2,15 @@
 
 import { useUser, UserButton } from "@clerk/nextjs";
 import { useOthers } from "@liveblocks/react";
+import { useSyncExternalStore } from "react";
+
+function useMounted(): boolean {
+  return useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
+}
 
 function getInitials(name?: string) {
   if (!name) return "?";
@@ -15,14 +24,13 @@ function getInitials(name?: string) {
 export function PresenceAvatars() {
   const { user } = useUser();
   const others = useOthers();
+  const mounted = useMounted();
 
   // Filter out any presence entry whose Clerk user ID matches the current user,
   // then deduplicate by userId so a collaborator with multiple tabs/devices
   // renders as a single avatar chip.
   const collaborators = others
-    .filter(
-      (other) => other.info?.userId && other.info?.userId !== user?.id
-    )
+    .filter((other) => other.info?.userId && other.info?.userId !== user?.id)
     .reduce<Array<(typeof others)[number]>>((acc, other) => {
       const uid = other.info.userId as string;
       if (!acc.some((entry) => (entry.info.userId as string) === uid)) {
@@ -45,7 +53,8 @@ export function PresenceAvatars() {
               const avatarUrl = other.info?.avatarUrl;
               const displayName = other.info?.displayName || "Collaborator";
               const initials = getInitials(displayName);
-              const ringColor = other.info?.cursorColor || "var(--color-border)";
+              const ringColor =
+                other.info?.cursorColor || "var(--color-border)";
 
               return (
                 <div
@@ -61,7 +70,9 @@ export function PresenceAvatars() {
                       className="h-full w-full object-cover"
                     />
                   ) : (
-                    <span className="text-[10px] tracking-tighter">{initials}</span>
+                    <span className="text-[10px] tracking-tighter">
+                      {initials}
+                    </span>
                   )}
                 </div>
               );
@@ -83,9 +94,11 @@ export function PresenceAvatars() {
       )}
 
       {/* Clerk User Button */}
-      <div className="flex h-8 w-8 items-center justify-center">
-        <UserButton />
-      </div>
+      {mounted && (
+        <div className="flex h-8 w-8 items-center justify-center">
+          <UserButton />
+        </div>
+      )}
     </div>
   );
 }

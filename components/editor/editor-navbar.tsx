@@ -1,13 +1,22 @@
-"use client"
+"use client";
 
-import { PanelLeftOpen, PanelLeftClose } from "lucide-react"
-import { UserButton } from "@clerk/nextjs"
-import { cn } from "@/lib/utils"
+import { PanelLeftOpen, PanelLeftClose } from "lucide-react";
+import { UserButton } from "@clerk/nextjs";
+import { useSyncExternalStore } from "react";
+import { cn } from "@/lib/utils";
+
+function useMounted(): boolean {
+  return useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
+}
 
 interface EditorNavbarProps {
-  sidebarOpen: boolean
-  onToggleSidebar: () => void
-  className?: string
+  sidebarOpen: boolean;
+  onToggleSidebar: () => void;
+  className?: string;
 }
 
 export function EditorNavbar({
@@ -15,11 +24,13 @@ export function EditorNavbar({
   onToggleSidebar,
   className,
 }: EditorNavbarProps) {
+  const mounted = useMounted();
+
   return (
     <header
       className={cn(
         "fixed top-0 left-0 right-0 z-40 flex h-12 items-center justify-between px-3 bg-card border-b border-border",
-        className
+        className,
       )}
     >
       {/* Left section */}
@@ -42,9 +53,7 @@ export function EditorNavbar({
       <div className="flex-1" />
 
       {/* Right section */}
-      <div className="flex items-center gap-2">
-        <UserButton />
-      </div>
+      <div className="flex items-center gap-2">{mounted && <UserButton />}</div>
     </header>
-  )
+  );
 }

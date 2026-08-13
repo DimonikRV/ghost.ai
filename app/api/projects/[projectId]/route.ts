@@ -1,7 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { slugify } from "@/lib/slugify";
+import { suggestAlternativeNames, toNameKey } from "@/lib/slugify";
 
 const MAX_NAME_LENGTH = 255;
 const DEFAULT_PROJECT_NAME = "Untitled Project";
@@ -39,6 +39,7 @@ export async function PATCH(
   }
 
   let name: string | undefined = body.name;
+  let nameKey: string | undefined;
   if (name !== undefined) {
     if (name === null || name.trim() === "") {
       name = DEFAULT_PROJECT_NAME;
@@ -52,13 +53,22 @@ export async function PATCH(
         { status: 400 },
       );
     }
+
+    nameKey = toNameKey(name);
+    const collides = await prisma.project.findUnique({
+      where: { ownerId_nameKey: { ownerId: userId, nameKey } },
+      select: { id: true, name: true },
+    });
+    if (collides && collides.id !== projectId) {
+      return duplicateNameResponse(collides.name, userId);
+    }
   }
 
   try {
     const updated = await prisma.project.update({
       where: { id: projectId },
       data: {
-        ...(name !== undefined && { name, nameKey: slugify(name) }),
+        ...(name !== undefined && nameKey !== undefined && { name, nameKey }),
         ...(body.description !== undefined && {
           description: body.description,
         }),
@@ -86,13 +96,33 @@ export async function PATCH(
       Array.isArray(error.meta.target) &&
       error.meta.target.includes("nameKey")
     ) {
-      return NextResponse.json(
-        { error: "A project with this name already exists" },
-        { status: 409 },
-      );
+      const collides = await prisma.project.findUnique({
+        where: { ownerId_nameKey: { ownerId: userId, nameKey: nameKey! } },
+        select: { name: true },
+      });
+      return duplicateNameResponse(collides?.name ?? name!, userId);
     }
     throw error;
   }
+}
+
+async function duplicateNameResponse(name: string, userId: string) {
+  const existingKeys = await prisma.project.findMany({
+    where: { ownerId: userId },
+    select: { nameKey: true },
+  });
+  return NextResponse.json(
+    {
+      error: "A project with this name already exists",
+      suggestions: suggestAlternativeNames(
+        name,
+        existingKeys.map((p) => p.nameKey),
+        3,
+        MAX_NAME_LENGTH,
+      ),
+    },
+    { status: 409 },
+  );
 }
 
 export async function DELETE(

@@ -1,7 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { slugify } from "@/lib/slugify";
+import { suggestAlternativeNames, toNameKey } from "@/lib/slugify";
 
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 100;
@@ -70,7 +70,16 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const nameKey = slugify(name);
+  const nameKey = toNameKey(name);
+
+  const existing = await prisma.project.findUnique({
+    where: { ownerId_nameKey: { ownerId: userId, nameKey } },
+    select: { id: true, name: true },
+  });
+
+  if (existing) {
+    return duplicateNameResponse(existing.name, userId);
+  }
 
   try {
     const project = await prisma.project.create({
@@ -103,11 +112,31 @@ export async function POST(req: NextRequest) {
       Array.isArray(error.meta.target) &&
       error.meta.target.includes("nameKey")
     ) {
-      return NextResponse.json(
-        { error: "A project with this name already exists" },
-        { status: 409 },
-      );
+      const collides = await prisma.project.findUnique({
+        where: { ownerId_nameKey: { ownerId: userId, nameKey } },
+        select: { name: true },
+      });
+      return duplicateNameResponse(collides?.name ?? name, userId);
     }
     throw error;
   }
+}
+
+async function duplicateNameResponse(existingName: string, userId: string) {
+  const existingKeys = await prisma.project.findMany({
+    where: { ownerId: userId },
+    select: { nameKey: true },
+  });
+  return NextResponse.json(
+    {
+      error: "A project with this name already exists",
+      suggestions: suggestAlternativeNames(
+        existingName,
+        existingKeys.map((p) => p.nameKey),
+        3,
+        MAX_NAME_LENGTH,
+      ),
+    },
+    { status: 409 },
+  );
 }

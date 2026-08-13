@@ -22,6 +22,7 @@ interface RenameProjectDialogProps {
   onSubmit: () => void;
   isLoading: boolean;
   error?: string | null;
+  suggestions?: string[];
 }
 
 export function RenameProjectDialog({
@@ -33,6 +34,7 @@ export function RenameProjectDialog({
   onSubmit,
   isLoading,
   error,
+  suggestions = [],
 }: RenameProjectDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -65,6 +67,27 @@ export function RenameProjectDialog({
             <p role="alert" className="text-xs text-destructive">
               {error}
             </p>
+          )}
+          {suggestions.length > 0 && (
+            <div className="space-y-1.5 pt-1">
+              <p className="text-xs text-muted-foreground">
+                Suggested names:
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {suggestions.map((suggestion) => (
+                  <Button
+                    key={suggestion}
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={isLoading}
+                    onClick={() => onNameChange(suggestion)}
+                  >
+                    {suggestion}
+                  </Button>
+                ))}
+              </div>
+            </div>
           )}
         </div>
 

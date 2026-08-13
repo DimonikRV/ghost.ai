@@ -6,6 +6,10 @@ import { slugify } from "@/lib/slugify";
 
 type DialogType = "create" | "rename" | "delete" | null;
 
+interface NameError extends Error {
+  suggestions?: string[];
+}
+
 export interface ProjectItem {
   id: string;
   name: string;
@@ -23,6 +27,8 @@ export interface UseProjectActionsReturn {
   renameName: string;
   createError: string | null;
   renameError: string | null;
+  createSuggestions: string[];
+  renameSuggestions: string[];
   isLoading: boolean;
   openCreate: () => void;
   openRename: (project: ProjectItem) => void;
@@ -88,6 +94,8 @@ export function useProjectActions(): UseProjectActionsReturn {
   const [renameName, setRenameName] = useState("");
   const [createError, setCreateError] = useState<string | null>(null);
   const [renameError, setRenameError] = useState<string | null>(null);
+  const [createSuggestions, setCreateSuggestions] = useState<string[]>([]);
+  const [renameSuggestions, setRenameSuggestions] = useState<string[]>([]);
 
   const createSlug = slugify(createName);
   const createRoomId = createSlug ? `${createSlug}-${createSuffix}` : "";
@@ -99,11 +107,14 @@ export function useProjectActions(): UseProjectActionsReturn {
     setRenameName("");
     setCreateError(null);
     setRenameError(null);
+    setCreateSuggestions([]);
+    setRenameSuggestions([]);
   }, []);
 
   const openCreate = useCallback(() => {
     setCreateName("");
     setCreateError(null);
+    setCreateSuggestions([]);
     setActiveDialog("create");
   }, []);
 
@@ -111,6 +122,7 @@ export function useProjectActions(): UseProjectActionsReturn {
     setSelectedProject(project);
     setRenameName(project.name);
     setRenameError(null);
+    setRenameSuggestions([]);
     setActiveDialog("rename");
   }, []);
 
@@ -126,19 +138,31 @@ export function useProjectActions(): UseProjectActionsReturn {
   const handleCreateNameChange = useCallback((name: string) => {
     setCreateName(name);
     setCreateError(null);
+    setCreateSuggestions([]);
   }, []);
 
   const handleRenameNameChange = useCallback((name: string) => {
     setRenameName(name);
     setRenameError(null);
+    setRenameSuggestions([]);
   }, []);
 
   const [withLoading, createLoading] = useWithLoading(closeDialogs, (error) => {
     setCreateError(error instanceof Error ? error.message : "Failed to create project");
+    setCreateSuggestions(
+      error instanceof Error && (error as NameError).suggestions
+        ? (error as NameError).suggestions!
+        : [],
+    );
   });
 
   const [withRenameLoading, renameLoading] = useWithLoading(closeDialogs, (error) => {
     setRenameError(error instanceof Error ? error.message : "Failed to rename project");
+    setRenameSuggestions(
+      error instanceof Error && (error as NameError).suggestions
+        ? (error as NameError).suggestions!
+        : [],
+    );
   });
 
   const [withDeleteLoading, deleteLoading] = useWithLoading(closeDialogs);
@@ -156,8 +180,10 @@ export function useProjectActions(): UseProjectActionsReturn {
       });
 
       if (!res.ok) {
-        const error = await res.json().catch(() => ({ error: "Failed to create project" }));
-        throw new Error(error.error ?? "Failed to create project");
+        const body = await res.json().catch(() => ({ error: "Failed to create project" }));
+        const err = new Error(body.error ?? "Failed to create project") as NameError;
+        err.suggestions = body.suggestions ?? [];
+        throw err;
       }
 
       const project = await res.json();
@@ -179,8 +205,10 @@ export function useProjectActions(): UseProjectActionsReturn {
       });
 
       if (!res.ok) {
-        const error = await res.json().catch(() => ({ error: "Failed to rename project" }));
-        throw new Error(error.error ?? "Failed to rename project");
+        const body = await res.json().catch(() => ({ error: "Failed to rename project" }));
+        const err = new Error(body.error ?? "Failed to rename project") as NameError;
+        err.suggestions = body.suggestions ?? [];
+        throw err;
       }
 
       handleProjectsChanged();
@@ -224,6 +252,8 @@ export function useProjectActions(): UseProjectActionsReturn {
     renameName,
     createError,
     renameError,
+    createSuggestions,
+    renameSuggestions,
     isLoading,
     openCreate,
     openRename,

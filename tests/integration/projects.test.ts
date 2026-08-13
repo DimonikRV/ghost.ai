@@ -118,6 +118,37 @@ describe("POST /api/projects", () => {
 
     const res = await POST(makeJson("/api/projects", "POST", { name: "alpha project!" }));
     expect(res.status).toBe(409);
-    await expect(res.json()).resolves.toEqual({ error: "A project with this name already exists" });
+    const body = await res.json();
+    expect(body.error).toBe("A project with this name already exists");
+    expect(body.suggestions).toEqual(["Alpha Project 2", "Alpha Project 3", "Alpha Project 4"]);
+  });
+
+  it("suggests the next available names after existing numbered duplicates", async () => {
+    await prisma.project.createMany({
+      data: [
+        { ownerId: OWNER, name: "Alpha Project", nameKey: "alpha-project" },
+        { ownerId: OWNER, name: "Alpha Project 2", nameKey: "alpha-project-2" },
+      ],
+    });
+
+    const res = await POST(makeJson("/api/projects", "POST", { name: "alpha project!" }));
+    expect(res.status).toBe(409);
+    const body = await res.json();
+    expect(body.suggestions).toEqual(["Alpha Project 3", "Alpha Project 4", "Alpha Project 5"]);
+  });
+
+  it("allows distinct special-character-only names", async () => {
+    const first = await POST(makeJson("/api/projects", "POST", { name: "!!!" }));
+    expect(first.status).toBe(201);
+
+    const second = await POST(makeJson("/api/projects", "POST", { name: "???" }));
+    expect(second.status).toBe(201);
+  });
+
+  it("rejects recreating a special-character-only name", async () => {
+    await POST(makeJson("/api/projects", "POST", { name: "!!!" }));
+
+    const res = await POST(makeJson("/api/projects", "POST", { name: "!!!" }));
+    expect(res.status).toBe(409);
   });
 });

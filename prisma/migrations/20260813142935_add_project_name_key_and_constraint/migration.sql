@@ -1,30 +1,69 @@
--- Add name_key column (nullable initially for data migration)
-ALTER TABLE "projects" ADD COLUMN "name_key" TEXT;
+-- Add name_key column (idempotent: may already exist from an earlier migration)
+ALTER TABLE "projects" ADD COLUMN IF NOT EXISTS "name_key" TEXT;
 
--- Populate name_key for all existing projects:
--- Simple slug: lowercase, spaces to hyphens, remove special chars
+-- Backfill name_key for all projects that still have NULL.
+-- The canonicalization must match the app's toNameKey() logic: lower-case,
+-- replace spaces and underscores with hyphens, strip non-letter/digit chars,
+-- collapse repeated hyphens, and trim leading/trailing hyphens.
 UPDATE "projects" SET "name_key" = (
-  SELECT regexp_replace(
-    regexp_replace(
+  CASE
+    WHEN regexp_replace(
       regexp_replace(
-        lower(trim("name")),
-        '\s+', '-', 'g'      -- Replace spaces/underscores with hyphens
+        regexp_replace(
+          regexp_replace(
+            lower(trim("name")),
+            '[\s_]+', '-', 'g'
+          ),
+          '[^[:alnum:][:space:]-]', '', 'g'
+        ),
+        '-+', '-', 'g'
       ),
-      '[^\w-]', '', 'g'     -- Remove non-word chars except hyphens
-    ),
-    '-+', '-', 'g'          -- Replace multiple hyphens with single
-  )
+      '^-+|-+$', '', 'g'
+    ) = '' THEN lower(trim("name"))
+    ELSE regexp_replace(
+      regexp_replace(
+        regexp_replace(
+          regexp_replace(
+            lower(trim("name")),
+            '[\s_]+', '-', 'g'
+          ),
+          '[^[:alnum:][:space:]-]', '', 'g'
+        ),
+        '-+', '-', 'g'
+      ),
+      '^-+|-+$', '', 'g'
+    )
+  END
 )
 WHERE "name_key" IS NULL;
 
--- Handle edge case: empty slugs (all special chars)
--- For names that slugify to empty string, use the trimmed lowercase original
-UPDATE "projects" 
-SET "name_key" = lower(trim("name"))
-WHERE "name_key" = '' OR "name_key" IS NULL;
+-- Ensure the backfill did not produce conflicting (owner_id, name_key) pairs.
+-- If any duplicates remain, abort with a clear report listing their project IDs.
+DO $$
+DECLARE
+  duplicate_count integer;
+  conflict_report text;
+BEGIN
+  WITH duplicate_groups AS (
+    SELECT owner_id, name_key, array_agg(id ORDER BY id) AS project_ids
+    FROM "projects"
+    GROUP BY owner_id, name_key
+    HAVING count(*) > 1
+  )
+  SELECT count(*), string_agg(project_id::text, ', ' ORDER BY project_id)
+    INTO duplicate_count, conflict_report
+  FROM (
+    SELECT unnest(project_ids) AS project_id
+    FROM duplicate_groups
+  ) d;
+
+  IF duplicate_count > 0 THEN
+    RAISE EXCEPTION 'Duplicate project name keys detected before unique index creation. Conflicting project IDs: %', conflict_report;
+  END IF;
+END $$;
 
 -- Make name_key NOT NULL after population
 ALTER TABLE "projects" ALTER COLUMN "name_key" SET NOT NULL;
 
--- Add unique constraint on (owner_id, name_key)
-ALTER TABLE "projects" ADD CONSTRAINT "projects_owner_id_name_key_key" UNIQUE ("owner_id", "name_key");
+-- Add unique index on (owner_id, name_key) (idempotent: may already exist)
+CREATE UNIQUE INDEX IF NOT EXISTS "projects_owner_id_name_key_key" ON "projects"("owner_id", "name_key");

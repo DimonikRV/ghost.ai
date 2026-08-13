@@ -21,6 +21,7 @@ interface CreateProjectDialogProps {
   onSubmit: () => void;
   isLoading: boolean;
   error?: string | null;
+  suggestions?: string[];
 }
 
 export function CreateProjectDialog({
@@ -32,6 +33,7 @@ export function CreateProjectDialog({
   onSubmit,
   isLoading,
   error,
+  suggestions = [],
 }: CreateProjectDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -74,6 +76,27 @@ export function CreateProjectDialog({
             <p role="alert" className="text-xs text-destructive">
               {error}
             </p>
+          )}
+          {suggestions.length > 0 && (
+            <div className="space-y-1.5">
+              <p className="text-xs text-muted-foreground">
+                Suggested names:
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {suggestions.map((suggestion) => (
+                  <Button
+                    key={suggestion}
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={isLoading}
+                    onClick={() => onNameChange(suggestion)}
+                  >
+                    {suggestion}
+                  </Button>
+                ))}
+              </div>
+            </div>
           )}
         </div>
 
