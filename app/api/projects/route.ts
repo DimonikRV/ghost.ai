@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { slugify } from "@/lib/slugify";
 
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 100;
@@ -36,9 +37,10 @@ export async function GET(req: NextRequest) {
     },
   });
 
-  const nextCursor = projects.length === limit && projects.length > 0
-    ? projects[projects.length - 1].id
-    : null;
+  const nextCursor =
+    projects.length === limit && projects.length > 0
+      ? projects[projects.length - 1].id
+      : null;
 
   return NextResponse.json({
     projects,
@@ -64,25 +66,48 @@ export async function POST(req: NextRequest) {
   if (name.length > MAX_NAME_LENGTH) {
     return NextResponse.json(
       { error: `Name must be ${MAX_NAME_LENGTH} characters or less` },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
-  const project = await prisma.project.create({
-    data: {
-      ownerId: userId,
-      name,
-      description: body.description ?? null,
-    },
-    select: {
-      id: true,
-      name: true,
-      description: true,
-      status: true,
-      createdAt: true,
-      updatedAt: true,
-    },
-  });
+  const nameKey = slugify(name);
 
-  return NextResponse.json(project, { status: 201 });
+  try {
+    const project = await prisma.project.create({
+      data: {
+        ownerId: userId,
+        name,
+        nameKey,
+        description: body.description ?? null,
+      },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    return NextResponse.json(project, { status: 201 });
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      "code" in error &&
+      error.code === "P2002" &&
+      "meta" in error &&
+      error.meta &&
+      typeof error.meta === "object" &&
+      "target" in error.meta &&
+      Array.isArray(error.meta.target) &&
+      error.meta.target.includes("nameKey")
+    ) {
+      return NextResponse.json(
+        { error: "A project with this name already exists" },
+        { status: 409 },
+      );
+    }
+    throw error;
+  }
 }

@@ -37,9 +37,9 @@ describe("GET /api/projects", () => {
   it("lists owned projects newest first and paginates", async () => {
     await prisma.project.createMany({
       data: [
-        { ownerId: OWNER, name: "A", createdAt: new Date("2026-01-01T00:00:00Z") },
-        { ownerId: OWNER, name: "B", createdAt: new Date("2026-01-02T00:00:00Z") },
-        { ownerId: OWNER, name: "C", createdAt: new Date("2026-01-03T00:00:00Z") },
+        { ownerId: OWNER, name: "A", nameKey: "a", createdAt: new Date("2026-01-01T00:00:00Z") },
+        { ownerId: OWNER, name: "B", nameKey: "b", createdAt: new Date("2026-01-02T00:00:00Z") },
+        { ownerId: OWNER, name: "C", nameKey: "c", createdAt: new Date("2026-01-03T00:00:00Z") },
       ],
     });
 
@@ -59,7 +59,7 @@ describe("GET /api/projects", () => {
 
   it("does not expose other users' projects", async () => {
     await prisma.project.create({
-      data: { ownerId: "user_integration_other", name: "Other" },
+      data: { ownerId: "user_integration_other", name: "Other", nameKey: "other" },
     });
     const res = await GET(makeGet("/api/projects"));
     const body = await res.json();
@@ -68,7 +68,7 @@ describe("GET /api/projects", () => {
 
   it("clamps the limit to the maximum", async () => {
     await prisma.project.createMany({
-      data: Array.from({ length: 5 }, (_, i) => ({ ownerId: OWNER, name: `P${i}` })),
+      data: Array.from({ length: 5 }, (_, i) => ({ ownerId: OWNER, name: `P${i}`, nameKey: `p${i}` })),
     });
     const res = await GET(makeGet("/api/projects?limit=1000"));
     const body = await res.json();
@@ -105,5 +105,19 @@ describe("POST /api/projects", () => {
     expect(res.status).toBe(400);
     const body = await res.json();
     expect(body.error).toContain("255");
+  });
+
+  it("rejects duplicates with the same canonicalized name", async () => {
+    await prisma.project.create({
+      data: {
+        ownerId: OWNER,
+        name: "Alpha Project",
+        nameKey: "alpha-project",
+      },
+    });
+
+    const res = await POST(makeJson("/api/projects", "POST", { name: "alpha project!" }));
+    expect(res.status).toBe(409);
+    await expect(res.json()).resolves.toEqual({ error: "A project with this name already exists" });
   });
 });

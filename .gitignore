@@ -48,5 +48,8 @@ next-env.d.ts
 /app/generated/prisma
 .prisma/
 
+# dev service runtime
+.dev-service/
+
 # trigger.dev local dev state (builds, run store, locks)
 /.trigger/

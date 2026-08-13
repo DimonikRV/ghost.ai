@@ -4,7 +4,8 @@ import { Plus, X, MoreVertical, Pencil, Trash2 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
-import { slugify, type ProjectItem } from "@/hooks/use-project-actions";
+import { slugify } from "@/lib/slugify";
+import type { ProjectItem } from "@/hooks/use-project-actions";
 
 interface ProjectSidebarProps {
   isOpen: boolean;

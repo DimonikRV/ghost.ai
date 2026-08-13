@@ -2,7 +2,10 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 import { checkProjectAccess } from "@/lib/project-access";
-import { GET as GetCanvas, PUT as PutCanvas } from "@/app/api/projects/[projectId]/canvas/route";
+import {
+  GET as GetCanvas,
+  PUT as PutCanvas,
+} from "@/app/api/projects/[projectId]/canvas/route";
 import {
   PATCH as PatchProject,
   DELETE as DeleteProject,
@@ -25,11 +28,11 @@ beforeEach(async () => {
   clerkState.userId = OWNER;
   clerkState.email = "owner@example.com";
   const created = await prisma.project.create({
-    data: { ownerId: OWNER, name: "Test Project" },
+    data: { ownerId: OWNER, name: "Test Project", nameKey: "test-project" },
   });
   projectId = created.id;
   blobPut.mockImplementation(() =>
-    Promise.resolve({ url: `https://blob.test/${projectId}.json` })
+    Promise.resolve({ url: `https://blob.test/${projectId}.json` }),
   );
   blobGet.mockImplementation(() => Promise.resolve(null));
 });
@@ -49,7 +52,12 @@ describe("checkProjectAccess", () => {
     const result = await checkProjectAccess(projectId);
     expect(result).toEqual({
       found: true,
-      access: { exists: true, isOwner: true, isCollaborator: false, hasAccess: true },
+      access: {
+        exists: true,
+        isOwner: true,
+        isCollaborator: false,
+        hasAccess: true,
+      },
     });
   });
 
@@ -62,7 +70,12 @@ describe("checkProjectAccess", () => {
     const result = await checkProjectAccess(projectId);
     expect(result).toEqual({
       found: true,
-      access: { exists: true, isOwner: false, isCollaborator: true, hasAccess: true },
+      access: {
+        exists: true,
+        isOwner: false,
+        isCollaborator: true,
+        hasAccess: true,
+      },
     });
   });
 
@@ -72,7 +85,12 @@ describe("checkProjectAccess", () => {
     const result = await checkProjectAccess(projectId);
     expect(result).toEqual({
       found: true,
-      access: { exists: true, isOwner: false, isCollaborator: false, hasAccess: false },
+      access: {
+        exists: true,
+        isOwner: false,
+        isCollaborator: false,
+        hasAccess: false,
+      },
     });
   });
 
@@ -81,7 +99,12 @@ describe("checkProjectAccess", () => {
     const result = await checkProjectAccess(projectId);
     expect(result).toEqual({
       found: true,
-      access: { exists: false, isOwner: false, isCollaborator: false, hasAccess: false },
+      access: {
+        exists: false,
+        isOwner: false,
+        isCollaborator: false,
+        hasAccess: false,
+      },
     });
   });
 });
@@ -91,7 +114,7 @@ describe("PATCH /api/projects/[projectId]", () => {
     clerkState.userId = null;
     const res = await PatchProject(
       makeJson(`/api/projects/${projectId}`, "PATCH", { name: "x" }),
-      routeParams(projectId)
+      routeParams(projectId),
     );
     expect(res.status).toBe(401);
   });
@@ -99,7 +122,7 @@ describe("PATCH /api/projects/[projectId]", () => {
   it("returns 404 for a nonexistent project", async () => {
     const res = await PatchProject(
       makeJson("/api/projects/nope", "PATCH", { name: "x" }),
-      routeParams("nope")
+      routeParams("nope"),
     );
     expect(res.status).toBe(404);
   });
@@ -109,7 +132,7 @@ describe("PATCH /api/projects/[projectId]", () => {
     clerkState.email = "outsider@example.com";
     const res = await PatchProject(
       makeJson(`/api/projects/${projectId}`, "PATCH", { name: "x" }),
-      routeParams(projectId)
+      routeParams(projectId),
     );
     expect(res.status).toBe(403);
   });
@@ -117,7 +140,7 @@ describe("PATCH /api/projects/[projectId]", () => {
   it("updates and trims the name", async () => {
     const res = await PatchProject(
       makeJson(`/api/projects/${projectId}`, "PATCH", { name: "  New Name  " }),
-      routeParams(projectId)
+      routeParams(projectId),
     );
     expect(res.status).toBe(200);
     const body = await res.json();
@@ -126,8 +149,10 @@ describe("PATCH /api/projects/[projectId]", () => {
 
   it("rejects a name longer than 255 characters", async () => {
     const res = await PatchProject(
-      makeJson(`/api/projects/${projectId}`, "PATCH", { name: "x".repeat(256) }),
-      routeParams(projectId)
+      makeJson(`/api/projects/${projectId}`, "PATCH", {
+        name: "x".repeat(256),
+      }),
+      routeParams(projectId),
     );
     expect(res.status).toBe(400);
   });
@@ -135,7 +160,7 @@ describe("PATCH /api/projects/[projectId]", () => {
   it("returns 400 when no updatable fields are provided", async () => {
     const res = await PatchProject(
       makeJson(`/api/projects/${projectId}`, "PATCH", {}),
-      routeParams(projectId)
+      routeParams(projectId),
     );
     expect(res.status).toBe(400);
   });
@@ -146,7 +171,7 @@ describe("DELETE /api/projects/[projectId]", () => {
     clerkState.userId = null;
     const res = await DeleteProject(
       makeJson(`/api/projects/${projectId}`, "DELETE"),
-      routeParams(projectId)
+      routeParams(projectId),
     );
     expect(res.status).toBe(401);
   });
@@ -154,7 +179,7 @@ describe("DELETE /api/projects/[projectId]", () => {
   it("returns 404 for a nonexistent project", async () => {
     const res = await DeleteProject(
       makeJson("/api/projects/nope", "DELETE"),
-      routeParams("nope")
+      routeParams("nope"),
     );
     expect(res.status).toBe(404);
   });
@@ -163,7 +188,7 @@ describe("DELETE /api/projects/[projectId]", () => {
     clerkState.userId = OUTSIDER;
     const res = await DeleteProject(
       makeJson(`/api/projects/${projectId}`, "DELETE"),
-      routeParams(projectId)
+      routeParams(projectId),
     );
     expect(res.status).toBe(403);
   });
@@ -171,7 +196,7 @@ describe("DELETE /api/projects/[projectId]", () => {
   it("deletes the project for the owner", async () => {
     const res = await DeleteProject(
       makeJson(`/api/projects/${projectId}`, "DELETE"),
-      routeParams(projectId)
+      routeParams(projectId),
     );
     expect(res.status).toBe(200);
     const count = await prisma.project.count({ where: { id: projectId } });
@@ -182,24 +207,36 @@ describe("DELETE /api/projects/[projectId]", () => {
 describe("GET /api/projects/[projectId]/canvas", () => {
   it("returns 401 when unauthenticated", async () => {
     clerkState.userId = null;
-    const res = await GetCanvas(makeGet(`/api/projects/${projectId}/canvas`), routeParams(projectId));
+    const res = await GetCanvas(
+      makeGet(`/api/projects/${projectId}/canvas`),
+      routeParams(projectId),
+    );
     expect(res.status).toBe(401);
   });
 
   it("returns 404 for a nonexistent project", async () => {
-    const res = await GetCanvas(makeGet("/api/projects/nope/canvas"), routeParams("nope"));
+    const res = await GetCanvas(
+      makeGet("/api/projects/nope/canvas"),
+      routeParams("nope"),
+    );
     expect(res.status).toBe(404);
   });
 
   it("returns 403 for a user without access", async () => {
     clerkState.userId = OUTSIDER;
     clerkState.email = "outsider@example.com";
-    const res = await GetCanvas(makeGet(`/api/projects/${projectId}/canvas`), routeParams(projectId));
+    const res = await GetCanvas(
+      makeGet(`/api/projects/${projectId}/canvas`),
+      routeParams(projectId),
+    );
     expect(res.status).toBe(403);
   });
 
   it("returns an empty canvas when nothing is saved", async () => {
-    const res = await GetCanvas(makeGet(`/api/projects/${projectId}/canvas`), routeParams(projectId));
+    const res = await GetCanvas(
+      makeGet(`/api/projects/${projectId}/canvas`),
+      routeParams(projectId),
+    );
     expect(res.status).toBe(200);
     await expect(res.json()).resolves.toEqual({ nodes: [], edges: [] });
   });
@@ -213,15 +250,23 @@ describe("GET /api/projects/[projectId]/canvas", () => {
       Promise.resolve({
         stream: new ReadableStream({
           start(controller) {
-            controller.enqueue(new TextEncoder().encode('{"nodes":[{"id":"n1"}],"edges":[]}'));
+            controller.enqueue(
+              new TextEncoder().encode('{"nodes":[{"id":"n1"}],"edges":[]}'),
+            );
             controller.close();
           },
         }),
-      })
+      }),
     );
-    const res = await GetCanvas(makeGet(`/api/projects/${projectId}/canvas`), routeParams(projectId));
+    const res = await GetCanvas(
+      makeGet(`/api/projects/${projectId}/canvas`),
+      routeParams(projectId),
+    );
     expect(res.status).toBe(200);
-    await expect(res.json()).resolves.toEqual({ nodes: [{ id: "n1" }], edges: [] });
+    await expect(res.json()).resolves.toEqual({
+      nodes: [{ id: "n1" }],
+      edges: [],
+    });
   });
 });
 
@@ -229,8 +274,11 @@ describe("PUT /api/projects/[projectId]/canvas", () => {
   it("returns 401 when unauthenticated", async () => {
     clerkState.userId = null;
     const res = await PutCanvas(
-      makeJson(`/api/projects/${projectId}/canvas`, "PUT", { nodes: [], edges: [] }),
-      routeParams(projectId)
+      makeJson(`/api/projects/${projectId}/canvas`, "PUT", {
+        nodes: [],
+        edges: [],
+      }),
+      routeParams(projectId),
     );
     expect(res.status).toBe(401);
   });
@@ -238,7 +286,7 @@ describe("PUT /api/projects/[projectId]/canvas", () => {
   it("returns 404 for a nonexistent project", async () => {
     const res = await PutCanvas(
       makeJson("/api/projects/nope/canvas", "PUT", { nodes: [], edges: [] }),
-      routeParams("nope")
+      routeParams("nope"),
     );
     expect(res.status).toBe(404);
   });
@@ -247,35 +295,47 @@ describe("PUT /api/projects/[projectId]/canvas", () => {
     clerkState.userId = OUTSIDER;
     clerkState.email = "outsider@example.com";
     const res = await PutCanvas(
-      makeJson(`/api/projects/${projectId}/canvas`, "PUT", { nodes: [], edges: [] }),
-      routeParams(projectId)
+      makeJson(`/api/projects/${projectId}/canvas`, "PUT", {
+        nodes: [],
+        edges: [],
+      }),
+      routeParams(projectId),
     );
     expect(res.status).toBe(403);
   });
 
   it("returns 400 when nodes and edges are not arrays", async () => {
     const res = await PutCanvas(
-      makeJson(`/api/projects/${projectId}/canvas`, "PUT", { nodes: [], edges: "oops" }),
-      routeParams(projectId)
+      makeJson(`/api/projects/${projectId}/canvas`, "PUT", {
+        nodes: [],
+        edges: "oops",
+      }),
+      routeParams(projectId),
     );
     expect(res.status).toBe(400);
   });
 
   it("returns 400 when nodes/edges lack string ids", async () => {
     const res = await PutCanvas(
-      makeJson(`/api/projects/${projectId}/canvas`, "PUT", { nodes: [{ type: "x" }], edges: [] }),
-      routeParams(projectId)
+      makeJson(`/api/projects/${projectId}/canvas`, "PUT", {
+        nodes: [{ type: "x" }],
+        edges: [],
+      }),
+      routeParams(projectId),
     );
     expect(res.status).toBe(400);
   });
 
   it("returns 400 for invalid JSON", async () => {
     const res = await PutCanvas(
-      new NextRequest(new URL(`http://localhost/api/projects/${projectId}/canvas`), {
-        method: "PUT",
-        body: "{not-json",
-      }),
-      routeParams(projectId)
+      new NextRequest(
+        new URL(`http://localhost/api/projects/${projectId}/canvas`),
+        {
+          method: "PUT",
+          body: "{not-json",
+        },
+      ),
+      routeParams(projectId),
     );
     expect(res.status).toBe(400);
   });
@@ -283,21 +343,29 @@ describe("PUT /api/projects/[projectId]/canvas", () => {
   it("returns 413 for an oversized payload", async () => {
     const bigId = "x".repeat(1_100_000);
     const res = await PutCanvas(
-      makeJson(`/api/projects/${projectId}/canvas`, "PUT", { nodes: [{ id: bigId }], edges: [] }),
-      routeParams(projectId)
+      makeJson(`/api/projects/${projectId}/canvas`, "PUT", {
+        nodes: [{ id: bigId }],
+        edges: [],
+      }),
+      routeParams(projectId),
     );
     expect(res.status).toBe(413);
   });
 
   it("saves the canvas and persists the blob url", async () => {
     const res = await PutCanvas(
-      makeJson(`/api/projects/${projectId}/canvas`, "PUT", { nodes: [{ id: "n1" }], edges: [] }),
-      routeParams(projectId)
+      makeJson(`/api/projects/${projectId}/canvas`, "PUT", {
+        nodes: [{ id: "n1" }],
+        edges: [],
+      }),
+      routeParams(projectId),
     );
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.url).toBe(`https://blob.test/${projectId}.json`);
-    const project = await prisma.project.findUnique({ where: { id: projectId } });
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+    });
     expect(project?.canvasJsonPath).toBe(`https://blob.test/${projectId}.json`);
   });
 
@@ -308,8 +376,11 @@ describe("PUT /api/projects/[projectId]/canvas", () => {
     clerkState.userId = COLLABORATOR;
     clerkState.email = "collab@example.com";
     const res = await PutCanvas(
-      makeJson(`/api/projects/${projectId}/canvas`, "PUT", { nodes: [{ id: "n1" }], edges: [] }),
-      routeParams(projectId)
+      makeJson(`/api/projects/${projectId}/canvas`, "PUT", {
+        nodes: [{ id: "n1" }],
+        edges: [],
+      }),
+      routeParams(projectId),
     );
     expect(res.status).toBe(200);
   });
@@ -317,8 +388,11 @@ describe("PUT /api/projects/[projectId]/canvas", () => {
   it("returns 500 when blob storage fails", async () => {
     blobPut.mockImplementation(() => Promise.reject(new Error("blob down")));
     const res = await PutCanvas(
-      makeJson(`/api/projects/${projectId}/canvas`, "PUT", { nodes: [{ id: "n1" }], edges: [] }),
-      routeParams(projectId)
+      makeJson(`/api/projects/${projectId}/canvas`, "PUT", {
+        nodes: [{ id: "n1" }],
+        edges: [],
+      }),
+      routeParams(projectId),
     );
     expect(res.status).toBe(500);
   });

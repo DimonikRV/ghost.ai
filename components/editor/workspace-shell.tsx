@@ -2,7 +2,8 @@
 
 import { useState, useCallback, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
-import { PanelLeftOpen, PanelLeftClose, Share2, Bot } from "lucide-react";
+import Link from "next/link";
+import { ArrowLeft, PanelLeftOpen, PanelLeftClose, Share2, Bot } from "lucide-react";
 import { ProjectSidebar } from "@/components/editor/project-sidebar";
 import { ShareDialog, type Collaborator } from "@/components/editor/share-dialog";
 import { ShapePanel } from "@/components/editor/shape-panel";
@@ -140,8 +141,15 @@ export function WorkspaceShell({
       >
         {/* Top navbar */}
         <header className="fixed top-0 left-0 right-0 z-40 flex h-12 items-center justify-between px-3 bg-card border-b border-border">
-          {/* Left: sidebar toggle + project name */}
+          {/* Left: back link + sidebar toggle + project name */}
           <div className="flex items-center gap-3">
+            <Link
+              href="/editor"
+              aria-label="Back to projects"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
             <button
               type="button"
               onClick={() => setSidebarOpen((prev) => !prev)}

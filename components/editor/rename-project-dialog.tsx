@@ -21,6 +21,7 @@ interface RenameProjectDialogProps {
   onNameChange: (name: string) => void;
   onSubmit: () => void;
   isLoading: boolean;
+  error?: string | null;
 }
 
 export function RenameProjectDialog({
@@ -31,6 +32,7 @@ export function RenameProjectDialog({
   onNameChange,
   onSubmit,
   isLoading,
+  error,
 }: RenameProjectDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -59,6 +61,11 @@ export function RenameProjectDialog({
               }
             }}
           />
+          {error && (
+            <p role="alert" className="text-xs text-destructive">
+              {error}
+            </p>
+          )}
         </div>
 
         <DialogFooter>

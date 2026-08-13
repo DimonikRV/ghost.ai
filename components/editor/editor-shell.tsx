@@ -31,6 +31,8 @@ function DialogsRenderer() {
     createName,
     createRoomId,
     renameName,
+    createError,
+    renameError,
     isLoading,
     closeDialogs,
     setCreateName,
@@ -50,6 +52,7 @@ function DialogsRenderer() {
         onNameChange={setCreateName}
         onSubmit={handleCreateSubmit}
         isLoading={isLoading}
+        error={createError}
       />
       {selectedProject && (
         <>
@@ -61,6 +64,7 @@ function DialogsRenderer() {
             onNameChange={setRenameName}
             onSubmit={handleRenameSubmit}
             isLoading={isLoading}
+            error={renameError}
           />
           <DeleteProjectDialog
             open={activeDialog === "delete"}

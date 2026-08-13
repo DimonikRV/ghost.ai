@@ -20,6 +20,7 @@ interface CreateProjectDialogProps {
   onNameChange: (name: string) => void;
   onSubmit: () => void;
   isLoading: boolean;
+  error?: string | null;
 }
 
 export function CreateProjectDialog({
@@ -30,6 +31,7 @@ export function CreateProjectDialog({
   onNameChange,
   onSubmit,
   isLoading,
+  error,
 }: CreateProjectDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -66,6 +68,11 @@ export function CreateProjectDialog({
           {!roomId && name.trim() && (
             <p id="create-room-id-preview" className="text-xs text-destructive">
               Name contains only special characters. Use letters, numbers, or spaces.
+            </p>
+          )}
+          {error && (
+            <p role="alert" className="text-xs text-destructive">
+              {error}
             </p>
           )}
         </div>

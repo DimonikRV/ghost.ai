@@ -21,7 +21,7 @@ beforeEach(async () => {
   clerkState.userId = OWNER;
   clerkState.email = "owner@example.com";
   const created = await prisma.project.create({
-    data: { ownerId: OWNER, name: "Shared" },
+    data: { ownerId: OWNER, name: "Shared", nameKey: "shared" },
   });
   projectId = created.id;
 });
@@ -35,16 +35,20 @@ describe("POST /api/projects/[projectId]/collaborators", () => {
   it("returns 401 when unauthenticated", async () => {
     clerkState.userId = null;
     const res = await InviteCollab(
-      makeJson(`/api/projects/${projectId}/collaborators`, "POST", { email: "x@example.com" }),
-      routeParams(projectId)
+      makeJson(`/api/projects/${projectId}/collaborators`, "POST", {
+        email: "x@example.com",
+      }),
+      routeParams(projectId),
     );
     expect(res.status).toBe(401);
   });
 
   it("returns 404 for a nonexistent project", async () => {
     const res = await InviteCollab(
-      makeJson("/api/projects/nope/collaborators", "POST", { email: "x@example.com" }),
-      routeParams("nope")
+      makeJson("/api/projects/nope/collaborators", "POST", {
+        email: "x@example.com",
+      }),
+      routeParams("nope"),
     );
     expect(res.status).toBe(404);
   });
@@ -52,8 +56,10 @@ describe("POST /api/projects/[projectId]/collaborators", () => {
   it("returns 403 for a non-owner", async () => {
     clerkState.userId = "user_integration_outsider";
     const res = await InviteCollab(
-      makeJson(`/api/projects/${projectId}/collaborators`, "POST", { email: "x@example.com" }),
-      routeParams(projectId)
+      makeJson(`/api/projects/${projectId}/collaborators`, "POST", {
+        email: "x@example.com",
+      }),
+      routeParams(projectId),
     );
     expect(res.status).toBe(403);
   });
@@ -61,21 +67,25 @@ describe("POST /api/projects/[projectId]/collaborators", () => {
   it("returns 400 for a missing or invalid email", async () => {
     const missing = await InviteCollab(
       makeJson(`/api/projects/${projectId}/collaborators`, "POST", {}),
-      routeParams(projectId)
+      routeParams(projectId),
     );
     expect(missing.status).toBe(400);
 
     const invalid = await InviteCollab(
-      makeJson(`/api/projects/${projectId}/collaborators`, "POST", { email: "not-an-email" }),
-      routeParams(projectId)
+      makeJson(`/api/projects/${projectId}/collaborators`, "POST", {
+        email: "not-an-email",
+      }),
+      routeParams(projectId),
     );
     expect(invalid.status).toBe(400);
   });
 
   it("returns 400 when inviting the owner's own email", async () => {
     const res = await InviteCollab(
-      makeJson(`/api/projects/${projectId}/collaborators`, "POST", { email: "OWNER@example.com" }),
-      routeParams(projectId)
+      makeJson(`/api/projects/${projectId}/collaborators`, "POST", {
+        email: "OWNER@example.com",
+      }),
+      routeParams(projectId),
     );
     expect(res.status).toBe(400);
     const body = await res.json();
@@ -87,7 +97,7 @@ describe("POST /api/projects/[projectId]/collaborators", () => {
       makeJson(`/api/projects/${projectId}/collaborators`, "POST", {
         email: "  Collab@Example.com  ",
       }),
-      routeParams(projectId)
+      routeParams(projectId),
     );
     expect(res.status).toBe(201);
     const body = await res.json();
@@ -97,12 +107,16 @@ describe("POST /api/projects/[projectId]/collaborators", () => {
 
   it("returns 400 when the user is already a collaborator", async () => {
     await InviteCollab(
-      makeJson(`/api/projects/${projectId}/collaborators`, "POST", { email: "collab@example.com" }),
-      routeParams(projectId)
+      makeJson(`/api/projects/${projectId}/collaborators`, "POST", {
+        email: "collab@example.com",
+      }),
+      routeParams(projectId),
     );
     const res = await InviteCollab(
-      makeJson(`/api/projects/${projectId}/collaborators`, "POST", { email: "collab@example.com" }),
-      routeParams(projectId)
+      makeJson(`/api/projects/${projectId}/collaborators`, "POST", {
+        email: "collab@example.com",
+      }),
+      routeParams(projectId),
     );
     expect(res.status).toBe(400);
     const body = await res.json();
@@ -113,22 +127,35 @@ describe("POST /api/projects/[projectId]/collaborators", () => {
 describe("GET /api/projects/[projectId]/collaborators", () => {
   it("returns 401 when unauthenticated", async () => {
     clerkState.userId = null;
-    const res = await ListCollabs(makeGet(`/api/projects/${projectId}/collaborators`), routeParams(projectId));
+    const res = await ListCollabs(
+      makeGet(`/api/projects/${projectId}/collaborators`),
+      routeParams(projectId),
+    );
     expect(res.status).toBe(401);
   });
 
   it("returns 403 for a user without access", async () => {
     clerkState.userId = "user_integration_outsider";
     clerkState.email = "outsider@example.com";
-    const res = await ListCollabs(makeGet(`/api/projects/${projectId}/collaborators`), routeParams(projectId));
+    const res = await ListCollabs(
+      makeGet(`/api/projects/${projectId}/collaborators`),
+      routeParams(projectId),
+    );
     expect(res.status).toBe(403);
   });
 
   it("lists collaborators for the owner with isOwner true", async () => {
-    await prisma.projectCollaborator.create({ data: { projectId, email: "a@example.com" } });
-    await prisma.projectCollaborator.create({ data: { projectId, email: "b@example.com" } });
+    await prisma.projectCollaborator.create({
+      data: { projectId, email: "a@example.com" },
+    });
+    await prisma.projectCollaborator.create({
+      data: { projectId, email: "b@example.com" },
+    });
 
-    const res = await ListCollabs(makeGet(`/api/projects/${projectId}/collaborators`), routeParams(projectId));
+    const res = await ListCollabs(
+      makeGet(`/api/projects/${projectId}/collaborators`),
+      routeParams(projectId),
+    );
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.isOwner).toBe(true);
@@ -140,11 +167,16 @@ describe("GET /api/projects/[projectId]/collaborators", () => {
   });
 
   it("allows a collaborator to list collaborators", async () => {
-    await prisma.projectCollaborator.create({ data: { projectId, email: "c@example.com" } });
+    await prisma.projectCollaborator.create({
+      data: { projectId, email: "c@example.com" },
+    });
     clerkState.userId = "user_integration_collab";
     clerkState.email = "c@example.com";
 
-    const res = await ListCollabs(makeGet(`/api/projects/${projectId}/collaborators`), routeParams(projectId));
+    const res = await ListCollabs(
+      makeGet(`/api/projects/${projectId}/collaborators`),
+      routeParams(projectId),
+    );
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.isOwner).toBe(false);
@@ -156,8 +188,10 @@ describe("DELETE /api/projects/[projectId]/collaborators", () => {
   it("returns 401 when unauthenticated", async () => {
     clerkState.userId = null;
     const res = await RemoveCollab(
-      makeJson(`/api/projects/${projectId}/collaborators`, "DELETE", { email: "x@example.com" }),
-      routeParams(projectId)
+      makeJson(`/api/projects/${projectId}/collaborators`, "DELETE", {
+        email: "x@example.com",
+      }),
+      routeParams(projectId),
     );
     expect(res.status).toBe(401);
   });
@@ -165,8 +199,10 @@ describe("DELETE /api/projects/[projectId]/collaborators", () => {
   it("returns 403 for a non-owner", async () => {
     clerkState.userId = "user_integration_outsider";
     const res = await RemoveCollab(
-      makeJson(`/api/projects/${projectId}/collaborators`, "DELETE", { email: "x@example.com" }),
-      routeParams(projectId)
+      makeJson(`/api/projects/${projectId}/collaborators`, "DELETE", {
+        email: "x@example.com",
+      }),
+      routeParams(projectId),
     );
     expect(res.status).toBe(403);
   });
@@ -174,24 +210,30 @@ describe("DELETE /api/projects/[projectId]/collaborators", () => {
   it("returns 400 when neither collaboratorId nor email is provided", async () => {
     const res = await RemoveCollab(
       makeJson(`/api/projects/${projectId}/collaborators`, "DELETE", {}),
-      routeParams(projectId)
+      routeParams(projectId),
     );
     expect(res.status).toBe(400);
   });
 
   it("returns 404 when the collaborator does not exist", async () => {
     const res = await RemoveCollab(
-      makeJson(`/api/projects/${projectId}/collaborators`, "DELETE", { email: "ghost@example.com" }),
-      routeParams(projectId)
+      makeJson(`/api/projects/${projectId}/collaborators`, "DELETE", {
+        email: "ghost@example.com",
+      }),
+      routeParams(projectId),
     );
     expect(res.status).toBe(404);
   });
 
   it("removes a collaborator by email", async () => {
-    await prisma.projectCollaborator.create({ data: { projectId, email: "gone@example.com" } });
+    await prisma.projectCollaborator.create({
+      data: { projectId, email: "gone@example.com" },
+    });
     const res = await RemoveCollab(
-      makeJson(`/api/projects/${projectId}/collaborators`, "DELETE", { email: "gone@example.com" }),
-      routeParams(projectId)
+      makeJson(`/api/projects/${projectId}/collaborators`, "DELETE", {
+        email: "gone@example.com",
+      }),
+      routeParams(projectId),
     );
     expect(res.status).toBe(200);
     const count = await prisma.projectCollaborator.count({
@@ -205,11 +247,15 @@ describe("DELETE /api/projects/[projectId]/collaborators", () => {
       data: { projectId, email: "gone2@example.com" },
     });
     const res = await RemoveCollab(
-      makeJson(`/api/projects/${projectId}/collaborators`, "DELETE", { collaboratorId: collab.id }),
-      routeParams(projectId)
+      makeJson(`/api/projects/${projectId}/collaborators`, "DELETE", {
+        collaboratorId: collab.id,
+      }),
+      routeParams(projectId),
     );
     expect(res.status).toBe(200);
-    const count = await prisma.projectCollaborator.count({ where: { id: collab.id } });
+    const count = await prisma.projectCollaborator.count({
+      where: { id: collab.id },
+    });
     expect(count).toBe(0);
   });
 });

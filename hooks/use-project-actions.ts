@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
+import { slugify } from "@/lib/slugify";
 
 type DialogType = "create" | "rename" | "delete" | null;
 
@@ -20,6 +21,8 @@ export interface UseProjectActionsReturn {
   createName: string;
   createRoomId: string;
   renameName: string;
+  createError: string | null;
+  renameError: string | null;
   isLoading: boolean;
   openCreate: () => void;
   openRename: (project: ProjectItem) => void;
@@ -31,19 +34,6 @@ export interface UseProjectActionsReturn {
   handleRenameSubmit: () => Promise<void>;
   handleDeleteSubmit: () => Promise<void>;
   onProjectsChanged: () => void;
-}
-
-/** Unicode-aware slugify: strips diacritics, keeps letters/digits. */
-export function slugify(name: string): string {
-  return name
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .trim()
-    .replace(/[^\p{L}\p{N}\s-]/gu, "")
-    .replace(/[\s_]+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "");
 }
 
 /** Generate a short unique suffix (4 alphanumeric chars). */
@@ -59,6 +49,7 @@ function generateSuffix(): string {
 /** Shared helper: runs fn while managing isLoading state. */
 function useWithLoading(
   onSuccess: () => void,
+  onError?: (error: unknown) => void,
 ): [(fn: () => Promise<void>) => void, boolean] {
   const [isLoading, setIsLoading] = useState(false);
   const submittingRef = useRef(false);
@@ -74,12 +65,13 @@ function useWithLoading(
           submittingRef.current = false;
           onSuccess();
         })
-        .catch(() => {
+        .catch((error) => {
           setIsLoading(false);
           submittingRef.current = false;
+          onError?.(error);
         });
     },
-    [onSuccess],
+    [onSuccess, onError],
   );
 
   return [withLoading, isLoading];
@@ -94,6 +86,8 @@ export function useProjectActions(): UseProjectActionsReturn {
   const [createName, setCreateName] = useState("");
   const [createSuffix] = useState(() => generateSuffix());
   const [renameName, setRenameName] = useState("");
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [renameError, setRenameError] = useState<string | null>(null);
 
   const createSlug = slugify(createName);
   const createRoomId = createSlug ? `${createSlug}-${createSuffix}` : "";
@@ -103,16 +97,20 @@ export function useProjectActions(): UseProjectActionsReturn {
     setSelectedProject(null);
     setCreateName("");
     setRenameName("");
+    setCreateError(null);
+    setRenameError(null);
   }, []);
 
   const openCreate = useCallback(() => {
     setCreateName("");
+    setCreateError(null);
     setActiveDialog("create");
   }, []);
 
   const openRename = useCallback((project: ProjectItem) => {
     setSelectedProject(project);
     setRenameName(project.name);
+    setRenameError(null);
     setActiveDialog("rename");
   }, []);
 
@@ -125,7 +123,27 @@ export function useProjectActions(): UseProjectActionsReturn {
     router.refresh();
   }, [router]);
 
-  const [withLoading, isLoading] = useWithLoading(closeDialogs);
+  const handleCreateNameChange = useCallback((name: string) => {
+    setCreateName(name);
+    setCreateError(null);
+  }, []);
+
+  const handleRenameNameChange = useCallback((name: string) => {
+    setRenameName(name);
+    setRenameError(null);
+  }, []);
+
+  const [withLoading, createLoading] = useWithLoading(closeDialogs, (error) => {
+    setCreateError(error instanceof Error ? error.message : "Failed to create project");
+  });
+
+  const [withRenameLoading, renameLoading] = useWithLoading(closeDialogs, (error) => {
+    setRenameError(error instanceof Error ? error.message : "Failed to rename project");
+  });
+
+  const [withDeleteLoading, deleteLoading] = useWithLoading(closeDialogs);
+
+  const isLoading = createLoading || renameLoading || deleteLoading;
 
   const handleCreateSubmit = useCallback(async () => {
     if (!createName.trim()) return;
@@ -168,8 +186,8 @@ export function useProjectActions(): UseProjectActionsReturn {
       handleProjectsChanged();
     };
 
-    withLoading(submit);
-  }, [renameName, selectedProject, withLoading, handleProjectsChanged]);
+    withRenameLoading(submit);
+  }, [renameName, selectedProject, withRenameLoading, handleProjectsChanged]);
 
   const handleDeleteSubmit = useCallback(async () => {
     if (!selectedProject) return;
@@ -195,8 +213,8 @@ export function useProjectActions(): UseProjectActionsReturn {
       }
     };
 
-    withLoading(submit);
-  }, [selectedProject, withLoading, pathname, router, handleProjectsChanged]);
+    withDeleteLoading(submit);
+  }, [selectedProject, withDeleteLoading, pathname, router, handleProjectsChanged]);
 
   return {
     activeDialog,
@@ -204,13 +222,15 @@ export function useProjectActions(): UseProjectActionsReturn {
     createName,
     createRoomId,
     renameName,
+    createError,
+    renameError,
     isLoading,
     openCreate,
     openRename,
     openDelete,
     closeDialogs,
-    setCreateName,
-    setRenameName,
+    setCreateName: handleCreateNameChange,
+    setRenameName: handleRenameNameChange,
     handleCreateSubmit,
     handleRenameSubmit,
     handleDeleteSubmit,
