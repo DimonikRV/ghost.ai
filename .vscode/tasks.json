@@ -17,7 +17,10 @@
       "label": "Dev: Restart",
       "type": "shell",
       "command": "bash",
-      "args": ["-lc", "pkill -f concurrently 2>/dev/null; pkill -f 'next dev' 2>/dev/null; pkill -f 'trigger dev' 2>/dev/null; nohup bash ./scripts/launch.sh > /tmp/ghost-launch.log 2>&1 &"],
+      "args": [
+        "-lc",
+        "pkill -f concurrently 2>/dev/null; pkill -f 'next dev' 2>/dev/null; pkill -f 'trigger dev' 2>/dev/null; bash ./scripts/launch.sh"
+      ],
       "problemMatcher": [],
       "presentation": {
         "reveal": "always",

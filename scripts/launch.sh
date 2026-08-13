@@ -39,6 +39,8 @@ trap cleanup EXIT
 
 echo "[container] Starting Next.js + Trigger.dev..."
 cd "${WORKSPACE_ROOT}"
+# Keep this process attached to the devcontainer lifecycle so the CLI does not
+# treat the startup as a short-lived background job and tear down the session.
 npx concurrently \
   --names "next,trigger" \
   --prefix-colors "cyan,magenta" \

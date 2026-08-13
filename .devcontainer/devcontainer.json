@@ -4,12 +4,9 @@
     "dockerfile": "Dockerfile"
   },
   "remoteUser": "root",
-  "forwardPorts": [
-    3000,
-    3030
-  ],
+  "forwardPorts": [3000, 3030],
   "postCreateCommand": "npm install",
-  "postStartCommand": "nohup bash ./scripts/launch.sh > /tmp/ghost-launch.log 2>&1 &",
+  "postStartCommand": "bash /workspaces/ghost.ai/scripts/launch.sh",
   "customizations": {
     "vscode": {
       "extensions": [
