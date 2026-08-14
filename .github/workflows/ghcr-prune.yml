@@ -16,12 +16,12 @@ jobs:
     name: Prune stale images
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    if: secrets.GHCR_PACKAGES_PAT != ''
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Prune GHCR package
-        run: bash scripts/prune-ghcr.sh
+        if: ${{ env.GHCR_PACKAGES_PAT != '' }}
         env:
           GHCR_PACKAGES_PAT: ${{ secrets.GHCR_PACKAGES_PAT }}
+        run: bash scripts/prune-ghcr.sh
