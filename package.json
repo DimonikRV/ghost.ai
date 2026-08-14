@@ -54,7 +54,7 @@
   },
   "devDependencies": {
     "@clerk/testing": "^2.2.22",
-    "@playwright/test": "^1.61.1",
+    "@playwright/test": "^1.62.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^24",
     "@types/pg": "^8.20.0",
