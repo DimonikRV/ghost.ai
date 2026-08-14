@@ -11,6 +11,7 @@ Each unit maps to a spec file in this directory.
 | 02 | 02-editor.md | Editor Chrome | ✅ Done | Navbar + sidebar + dialog pattern |
 | 03 | 03-auth.md | Authentication | ✅ Done | Clerk wired, route protection, auth pages |
 | 04 | 04-project-dialogs.md | Project Dialogs | ✅ Done | Create/rename/delete dialogs, sidebar actions |
+| 23 | 23-ci-cd-hardening.md | CI/CD Pipeline Hardening | ✅ Done | P0–P2 remediation, one item at a time |
 
 ## How to Add a Unit
 

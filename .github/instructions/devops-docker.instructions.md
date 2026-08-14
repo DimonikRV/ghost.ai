@@ -28,18 +28,26 @@ deployment files: `Dockerfile`, `.dockerignore`, `docker-compose.yml`,
 
 ## Docker build rules
 
-- Multi-stage: `deps` (npm install) → `builder` (prisma generate + `npm run build`) →
+- Multi-stage: `deps` (`npm ci`) → `builder` (prisma generate + `npm run build`) →
   `runner` (`node:24-slim`, non-root `node` user).
 - Runner must set `NODE_ENV=production`, `HOSTNAME=0.0.0.0`, `PORT=3000` and run
   `node server.js` (never `npm start` — signals).
 - `node:24-slim` (glibc) — matches the devcontainer; do not switch to Alpine
   unless you re-verify native deps.
+- No extra OS packages are installed in the runner (the dev-only
+  `flock`/`pkill` guard in `scripts/launch.sh` and `.vscode/tasks.json` is not
+  needed at runtime).
 - `.env*` is dockerignored. Use `--build-arg` for `NEXT_PUBLIC_*` only.
 
 ## Runtime / compose rules
 
 - `docker-compose.yml` runs a single `app` service; the database is cloud Prisma
   Postgres (no DB container in prod).
+- The image tag is `ghcr.io/dimonikrv/ghost-pilot:${GHOST_PILOT_TAG:-latest}` —
+  deploys pin an immutable `sha-<7>` tag via `GHOST_PILOT_TAG`; `latest` is only
+  the manual-deploy default.
 - Healthcheck: `node -e fetch(...)` against `/api/health` (must stay in Clerk's
-  public routes in `proxy.ts` — do not remove it).
-- Update images with `docker compose pull app && docker compose up -d app`.
+  public routes in `proxy.ts` — do not remove it). CD waits for it to become
+  healthy and rolls back to the previous tag on failure.
+- Update images with `GHOST_PILOT_TAG=<sha> docker compose pull app &&
+  GHOST_PILOT_TAG=<sha> docker compose up -d app`.

@@ -76,11 +76,23 @@ Update this file after every meaningful implementation change.
   - Removed old mock files: `use-project-dialogs.ts`, `project-dialogs-context.tsx`
   - `tsc --noEmit`, `npm run lint`, and `npm run build` pass clean
 
-## In Progress
-
-- None
-
 ## Completed (this session)
+
+- **23-ci-cd-hardening** — CI/CD pipeline hardening (P0→P1→P2):
+  - P0-1: reproducible installs — `npm ci --no-audit --no-fund` in ci.yml, cd.yml (migrate/trigger-deploy), Dockerfile deps stage; package-lock.json verified in sync
+  - P0-2: least privilege — `permissions: contents: read` top-level in ci.yml, per-job in cd.yml (build-push adds `packages: write`)
+  - P0-3: e2e against production build — `playwright.config.ts` `webServer.command: npm run start` + `NODE_ENV=production`/`PORT` env
+  - P1-4: `trigger-deploy.needs: [build-push, migrate]`
+  - P1-5/6: `docker-compose.yml` image `ghcr.io/dimonikrv/ghost-pilot:${GHOST_PILOT_TAG:-latest}`; cd.yml deploy job rewritten (PREV_TAG capture from running container image, 48×5s healthcheck wait, rollback + exit 1 on failure); build-push emits `sha_tag` output + pushes short `sha-<7>` tag
+  - P1-7: ci.yml split into parallel lint/typecheck/test/build/e2e/notify jobs with npm/next/playwright caches, `.next` artifact upload/download, Playwright report upload on failure/cancelled
+  - P2-7: `.github/dependabot.yml`, `.nvmrc` (24), `.github/CODEOWNERS` (@DimonikRV)
+  - P2-8: all third-party actions SHA-pinned (checkout/setup-node/cache/upload-artifact/download-artifact/setup-buildx/login/metadata/build-push/ssh-action/action-slack)
+  - P2-9: `scripts/prune-ghcr.sh` + `.github/workflows/ghcr-prune.yml` (weekly, secret-gated); removed `util-linux`/`procps` from Dockerfile
+  - P2-10: Slack `notify` jobs in ci.yml + cd.yml (8398a7/action-slack SHA-pinned, secret-gated)
+  - Docs synced: `.github/instructions/ci-cd.instructions.md` rewritten, devops-docker.instructions.md, AGENTS.md DevOps section, `.agents/skills/ci-cd/SKILL.md`, `.agents/skills/devops/SKILL.md`
+  - Spec: `context/feature-specs/23-ci-cd-hardening.md`
+
+## Completed (this session) (older)
 
 - **21-canvas-autosave** — autosave and loading for collaborative canvas via Vercel Blob:
   - `@vercel/blob` installed as dependency

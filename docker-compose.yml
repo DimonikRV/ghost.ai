@@ -7,7 +7,9 @@
 # `.env.example`. Never commit real secrets.
 services:
   app:
-    image: ghcr.io/dimonikrv/ghost-pilot:latest
+    # Pin deploys to an immutable sha-* tag via GHOST_PILOT_TAG
+    # (set by CI/CD). Defaults to latest for manual deploys.
+    image: ghcr.io/dimonikrv/ghost-pilot:${GHOST_PILOT_TAG:-latest}
     # Uncomment to build locally instead of pulling:
     # build:
     #   context: .

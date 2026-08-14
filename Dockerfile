@@ -13,7 +13,7 @@ FROM node:24-slim AS deps
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-RUN npm install --no-audit --no-fund
+RUN npm ci --no-audit --no-fund
 
 # ---------- Stage 2: builder ----------
 FROM node:24-slim AS builder
@@ -71,9 +71,6 @@ COPY --from=builder /app/app/generated ./app/generated
 
 # Writable .next dir for prerender cache / optimized images
 RUN mkdir -p .next && chown -R node:node /app
-
-# These utilities are required by the workspace dev-service lock/ PID guard.
-RUN apt-get update && apt-get install -y --no-install-recommends util-linux procps && rm -rf /var/lib/apt/lists/*
 
 # Non-root user for security
 USER node

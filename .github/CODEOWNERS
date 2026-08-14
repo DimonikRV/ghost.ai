@@ -1,0 +1,4 @@
+# Default owner for CI/CD and infrastructure files.
+.github/ @DimonikRV
+Dockerfile @DimonikRV
+docker-compose.yml @DimonikRV

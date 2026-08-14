@@ -17,19 +17,21 @@ jobs:
     permissions:
       contents: read
       packages: write
+    outputs:
+      sha_tag: ${{ steps.sha-tag.outputs.sha_tag }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
 
-      - uses: docker/login-action@v3
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: docker/metadata-action@v5
+      - uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
         id: meta
         with:
           images: ghcr.io/dimonikrv/ghost-pilot
@@ -37,12 +39,16 @@ jobs:
             type=sha
             type=raw,value=latest
 
+      - name: Compute immutable sha tag
+        id: sha-tag
+        run: echo "sha_tag=sha-${GITHUB_SHA:0:7}" >> "$GITHUB_OUTPUT"
+
       - name: Build and push
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
         with:
           context: .
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
+          tags: ${{ steps.meta.outputs.tags }},${{ steps.sha-tag.outputs.sha_tag }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
@@ -58,16 +64,18 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: build-push
+    permissions:
+      contents: read
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24
           cache: npm
 
       - name: Install dependencies
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
 
       - name: Apply migrations to production DB
         run: npx prisma migrate deploy
@@ -79,19 +87,21 @@ jobs:
   deploy:
     name: Deploy to VPS
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     if: vars.ENABLE_VPS_DEPLOY == 'true'
     needs: [build-push, migrate]
+    permissions:
+      contents: read
 
     steps:
       - name: SSH deploy via docker compose
-        uses: appleboy/ssh-action@v1.2.0
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT || '22' }}
-          envs: GHCR_USERNAME,GHCR_PAT
+          envs: GHCR_USERNAME,GHCR_PAT,GHOST_PILOT_TAG
           script: |
             set -e
             cd "${{ vars.VPS_APP_DIR || '/opt/ghost-pilot' }}"
@@ -100,28 +110,55 @@ jobs:
             if [ -n "${GHCR_PAT:-}" ]; then
               echo "$GHCR_PAT" | docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin
             fi
-            docker compose pull app
-            docker compose up -d --remove-orphans app
+            # The currently running tag is captured before pulling so a failed
+            # deploy can roll back to it.
+            CID=$(docker compose ps -q app 2>/dev/null | head -n1)
+            PREV_IMG=$(docker inspect -f '{{.Config.Image}}' "$CID" 2>/dev/null || true)
+            PREV_TAG=${PREV_IMG##*:}
+            PREV_TAG=${PREV_TAG:-latest}
+            echo "Deploying ${GHOST_PILOT_TAG} (previous: ${PREV_TAG})"
+            GHOST_PILOT_TAG=${GHOST_PILOT_TAG} docker compose pull app
+            GHOST_PILOT_TAG=${GHOST_PILOT_TAG} docker compose up -d --remove-orphans app
+            # Wait for the container healthcheck to pass (up to ~4 minutes).
+            HEALTHY=0
+            for i in $(seq 1 48); do
+              STATUS=$(docker inspect -f '{{.State.Health.Status}}' "$(docker compose ps -q app)" 2>/dev/null || echo "starting")
+              echo "[$i/48] health: ${STATUS}"
+              if [ "$STATUS" = "healthy" ]; then
+                HEALTHY=1
+                break
+              fi
+              sleep 5
+            done
+            if [ "$HEALTHY" -ne 1 ]; then
+              echo "::error::Healthcheck failed for ${GHOST_PILOT_TAG}; rolling back to ${PREV_TAG}"
+              GHOST_PILOT_TAG=${PREV_TAG} docker compose pull app
+              GHOST_PILOT_TAG=${PREV_TAG} docker compose up -d --remove-orphans app
+              exit 1
+            fi
             docker image prune -f
         env:
           GHCR_USERNAME: ${{ secrets.GHCR_USERNAME || 'DimonikRV' }}
           GHCR_PAT: ${{ secrets.GHCR_PAT }}
+          GHOST_PILOT_TAG: ${{ needs.build-push.outputs.sha_tag }}
 
   trigger-deploy:
     name: Deploy Trigger.dev tasks
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: [build-push]
+    needs: [build-push, migrate]
+    permissions:
+      contents: read
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24
           cache: npm
 
       - name: Install dependencies
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
 
       - name: Deploy tasks to Trigger.dev cloud
         run: npx trigger.dev deploy
@@ -129,3 +166,21 @@ jobs:
           TRIGGER_ACCESS_TOKEN: ${{ secrets.TRIGGER_ACCESS_TOKEN }}
           TRIGGER_PROJECT_REF: ${{ secrets.TRIGGER_PROJECT_REF }}
           TRIGGER_SECRET_KEY: ${{ secrets.TRIGGER_SECRET_KEY }}
+
+  notify:
+    name: Notify on failure
+    runs-on: ubuntu-latest
+    needs: [build-push, migrate, deploy, trigger-deploy]
+    if: ${{ always() && (contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')) }}
+    permissions:
+      contents: read
+
+    steps:
+      - name: Send failure notification
+        if: ${{ secrets.SLACK_WEBHOOK_URL != '' }}
+        uses: 8398a7/action-slack@77eaa4f1c608a7d68b38af4e3f739dcd8cba273e # v3.19.0
+        with:
+          status: ${{ job.status }}
+          fields: repo,message,commit,author,ref,workflow,job,took
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

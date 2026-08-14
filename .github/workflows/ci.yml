@@ -9,11 +9,65 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
+# Clerk keys are required at build/run time. Real values come from
+# repo secrets; safe placeholders keep the pipeline green when they
+# are not configured yet (auth flows are not E2E-tested).
+env:
+  NEXT_PUBLIC_CLERK_SIGN_IN_URL: /sign-in
+  NEXT_PUBLIC_CLERK_SIGN_UP_URL: /sign-up
+  NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL: /editor
+  NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL: /editor
+  NEXT_PUBLIC_CLERK_AFTER_SIGN_OUT_URL: /sign-in
+
 jobs:
-  ci:
-    name: Lint, typecheck, build & e2e
+  lint:
+    name: Lint
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Lint
+        run: npm run lint
+
+  typecheck:
+    name: Typecheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Typecheck
+        run: npm run typecheck
+
+  test:
+    name: Integration tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     services:
       postgres:
@@ -31,29 +85,18 @@ jobs:
           --health-retries 10
 
     env:
-      CI: "true"
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/ghost_pilot_test
-      # Clerk keys are required at build/run time. Real values come from
-      # repo secrets; safe placeholders keep the pipeline green when
-      # they are not configured yet (auth flows are not E2E-tested).
-      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.CI_CLERK_PUBLISHABLE_KEY || 'pk_test_dummy' }}
-      CLERK_SECRET_KEY: ${{ secrets.CI_CLERK_SECRET_KEY || 'sk_test_dummy' }}
-      NEXT_PUBLIC_CLERK_SIGN_IN_URL: /sign-in
-      NEXT_PUBLIC_CLERK_SIGN_UP_URL: /sign-up
-      NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL: /editor
-      NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL: /editor
-      NEXT_PUBLIC_CLERK_AFTER_SIGN_OUT_URL: /sign-in
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24
           cache: npm
 
       - name: Install dependencies
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
 
       - name: Generate Prisma client
         run: npx prisma generate
@@ -64,14 +107,103 @@ jobs:
       - name: Run integration tests
         run: npm run test:integration
 
-      - name: Lint
-        run: npm run lint
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
 
-      - name: Typecheck
-        run: npm run typecheck
+    env:
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.CI_CLERK_PUBLISHABLE_KEY || 'pk_test_dummy' }}
+      CLERK_SECRET_KEY: ${{ secrets.CI_CLERK_SECRET_KEY || 'sk_test_dummy' }}
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Restore Next.js build cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .next/cache
+          key: next-cache-${{ runner.os }}-${{ hashFiles('**/*.{ts,tsx,js,jsx}') }}
+          restore-keys: |
+            next-cache-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Generate Prisma client
+        run: npx prisma generate
 
       - name: Build
         run: npm run build
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: next-build
+          path: .next
+          retention-days: 1
+
+  e2e:
+    name: E2E tests (production build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: build
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: ghost_pilot_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/ghost_pilot_test
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.CI_CLERK_PUBLISHABLE_KEY || 'pk_test_dummy' }}
+      CLERK_SECRET_KEY: ${{ secrets.CI_CLERK_SECRET_KEY || 'sk_test_dummy' }}
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Restore Playwright browsers
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            playwright-${{ runner.os }}-
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Apply migrations
+        run: npx prisma migrate deploy
+
+      - name: Download build artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: next-build
+          path: .next
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
@@ -80,9 +212,27 @@ jobs:
         run: npm run test
 
       - name: Upload Playwright report
-        if: failure()
-        uses: actions/upload-artifact@v4
+        if: failure() || cancelled()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: playwright-report
           path: playwright-report/
           retention-days: 7
+
+  notify:
+    name: Notify on failure
+    runs-on: ubuntu-latest
+    needs: [lint, typecheck, test, build, e2e]
+    if: ${{ always() && (contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')) }}
+    permissions:
+      contents: read
+
+    steps:
+      - name: Send failure notification
+        if: ${{ secrets.SLACK_WEBHOOK_URL != '' }}
+        uses: 8398a7/action-slack@77eaa4f1c608a7d68b38af4e3f739dcd8cba273e # v3.19.0
+        with:
+          status: ${{ job.status }}
+          fields: repo,message,commit,author,ref,workflow,job,took
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

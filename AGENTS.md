@@ -1465,16 +1465,27 @@ driven by GitHub Actions. Full details live in
 - **`app/api/health/route.ts` must stay public** in `proxy.ts` `isPublicRoute`
   — the container healthcheck and CD depend on it.
 - **GitHub-hosted runners** (`ubuntu-latest`) for all jobs; no self-hosted.
+- **Reproducible installs**: `npm ci` everywhere (`ci.yml`, `cd.yml`, Dockerfile);
+  `package-lock.json` committed and kept in sync.
+- **Least privilege**: every job declares explicit `permissions` (mostly
+  `contents: read`); only `build-push` gets `packages: write`.
+- **Immutable deploys**: images are tagged `sha-*`; the VPS deploy pins
+  `GHOST_PILOT_TAG=sha-<7>` via compose and rolls back on a failed healthcheck.
+- **Action pinning**: all third-party actions pinned to full commit SHAs.
 
 ## Pipeline shape
 
-- `ci.yml`: PR + push to `main`/`development` → `npm install` → prisma generate →
-  migrate deploy (Postgres service container) → lint → typecheck → build →
-  Playwright e2e.
-- `cd.yml`: push to `main` → build-push (GHCR, `latest` + `sha-*`) → migrate
-  (prod `DATABASE_URL`) → trigger-deploy (`npx trigger.dev deploy`). The VPS
-  `deploy` job (ssh-action, `docker compose pull && up -d`) is dormant — gated
+- `ci.yml`: PR + push to `main`/`development` → parallel jobs (lint,
+  typecheck, integration tests with Postgres service container, build +
+  `.next` artifact, e2e against the **production build**). Playwright report
+  uploaded on failure/cancellation; Slack `notify` job if `SLACK_WEBHOOK_URL`.
+- `cd.yml`: push to `main` → build-push (GHCR, `latest` + `sha-*` + short
+  `sha-<7>`, emits `sha_tag`) → migrate (prod `DATABASE_URL`) → deploy →
+  trigger-deploy (needs build-push + migrate). The VPS `deploy` job
+  (ssh-action, pinned tag, healthcheck wait + rollback) is dormant — gated
   behind repo variable `ENABLE_VPS_DEPLOY=true` plus `VPS_*` secrets.
+- `ghcr-prune.yml`: weekly cleanup of stale `sha-*`/untagged images
+  (`scripts/prune-ghcr.sh`), no-op without `GHCR_PACKAGES_PAT`.
 - One-time server bootstrap: `sudo bash scripts/setup_server.sh`
   (default app dir `/opt/ghost-pilot`).
 - No Docker CLI on the local host: validate image changes via CI; locally use

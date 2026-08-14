@@ -1,0 +1,27 @@
+name: GHCR Prune
+
+# Scheduled cleanup of stale Ghost Pilot image versions.
+# No-op unless the GHCR_PACKAGES_PAT secret is set (needs
+# read:packages + delete:packages scopes on a user-scoped package).
+on:
+  schedule:
+    - cron: "17 3 * * 1" # weekly: Mon 03:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  prune:
+    name: Prune stale images
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: secrets.GHCR_PACKAGES_PAT != ''
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Prune GHCR package
+        run: bash scripts/prune-ghcr.sh
+        env:
+          GHCR_PACKAGES_PAT: ${{ secrets.GHCR_PACKAGES_PAT }}

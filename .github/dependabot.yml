@@ -1,0 +1,38 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+    groups:
+      nextjs:
+        patterns:
+          - "next"
+          - "eslint-config-next"
+      clerk:
+        patterns:
+          - "@clerk/*"
+      liveblocks:
+        patterns:
+          - "@liveblocks/*"
+      trigger:
+        patterns:
+          - "@trigger.dev/*"
+          - "trigger.dev"
+      prisma:
+        patterns:
+          - "prisma"
+          - "@prisma/*"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+    open-pull-requests-limit: 10
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns:
+          - "*"

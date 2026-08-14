@@ -5,11 +5,9 @@ pushed to GHCR and deployed to a VPS over SSH via Docker Compose.
 
 ## Dependency installation notes
 
-CI/CD uses `npm install` (not `npm ci`) because `package-lock.json` is stale
-(after the Trigger.dev v3→v4 / Prisma 6→7 migration) and cannot be regenerated
-on the slow local WSL host. Once the lockfile is regenerated on a machine with
-working npm (`npm install`, then commit it), prefer switching CI/CD back to
-`npm ci` for reproducible installs.
+CI/CD uses `npm ci --no-audit --no-fund` (reproducible installs) everywhere —
+`ci.yml`, `cd.yml`, and the `Dockerfile` deps stage. `package-lock.json` is
+committed and kept in sync (`npm install`, then commit it).
 
 ## Secrets to configure in the repo (Settings → Secrets and variables → Actions)
 
@@ -24,33 +22,66 @@ Required for CD (all mandatory; without them the deploy fails):
 - `VPS_HOST`, `VPS_USER`, `VPS_SSH_KEY`, `VPS_PORT` (optional, default 22).
 - `TRIGGER_PROJECT_REF`, `TRIGGER_SECRET_KEY` — for `npx trigger.dev deploy`.
 
+Optional:
+- `SLACK_WEBHOOK_URL` — sends failure notifications (CI + CD `notify` jobs).
+- `GHCR_PACKAGES_PAT` — PAT with `read:packages` + `delete:packages` for the
+  weekly GHCR image prune (`ghcr-prune.yml`, user-scoped package).
+
 Variables (optional):
 - `VPS_APP_DIR` — default `/opt/ghost-pilot` (must match `scripts/setup_server.sh`).
+- `ENABLE_VPS_DEPLOY` — set to `true` to activate the VPS deploy job.
 
 ## ci.yml
 
-Triggered on PR + push to `main`/`development`. One job:
-`npm install` → `prisma generate` → `prisma migrate deploy` (against a Postgres
-**service container**) → `npm run lint` → `npm run typecheck` → `npm run build`
-→ Playwright Chromium e2e → upload report on failure.
+Triggered on PR + push to `main`/`development`. Five parallel jobs (all with
+`permissions: contents: read`):
+
+1. **lint** — `npm ci` → `npm run lint`.
+2. **typecheck** — `npm ci` → `prisma generate` → `npm run typecheck`.
+3. **test** — Postgres **service container**; `npm ci` → `prisma generate` →
+   `prisma migrate deploy` → `npm run test:integration`.
+4. **build** — `npm ci` → `prisma generate` → `npm run build` → uploads the
+   `.next` artifact (1-day retention) for e2e.
+5. **e2e** (needs build) — Postgres service container; `npm ci` → `prisma generate`
+   → `prisma migrate deploy` → download `.next` artifact → Playwright Chromium
+   against the **production build** (`npm run start`) → upload report on
+   failure/cancellation.
+
+A `notify` job posts to Slack (if `SLACK_WEBHOOK_URL` is set) when any job fails.
 
 ## cd.yml
 
-Triggered on push to `main`. Four jobs, ordered:
+Triggered on push to `main`. Jobs, ordered:
 
-1. **build-push** — buildx + login GHCR + build/push `ghcr.io/dimonikrv/ghost-pilot`
-   with `latest` + `sha-<hash>` tags, GHA layer cache, `NEXT_PUBLIC_*` build args.
-2. **migrate** — `npm install` + `npx prisma migrate deploy` against prod `DATABASE_URL`
+1. **build-push** — buildx + login GHCR + build/push
+   `ghcr.io/dimonikrv/ghost-pilot` with `latest` + full `sha-<hash>` +
+   short `sha-<7>` tags, GHA layer cache, `NEXT_PUBLIC_*` build args. Emits
+   `sha_tag` output for the deploy job.
+2. **migrate** — `npm ci` + `npx prisma migrate deploy` against prod `DATABASE_URL`
    (runs before the app swap so schema is ready).
-3. **deploy** — `appleboy/ssh-action` → VPS: `docker compose pull app`,
-   `docker compose up -d --remove-orphans app`, prune old images.
-   **Dormant by default**: gated behind the repository variable
-   `ENABLE_VPS_DEPLOY == 'true'`. Until that is set (and the `VPS_*` secrets
-   exist) the job is skipped.
+3. **deploy** — `appleboy/ssh-action` → VPS: pulls the **pinned `sha-<7>` tag**
+   via `GHOST_PILOT_TAG`, `docker compose up -d --remove-orphans app`, waits for
+   the container healthcheck to become healthy, and **rolls back to the previous
+   tag on failure** (exits non-zero). **Dormant by default**: gated behind the
+   repository variable `ENABLE_VPS_DEPLOY == 'true'`. Until that is set (and the
+   `VPS_*` secrets exist) the job is skipped.
 4. **trigger-deploy** — `npx trigger.dev deploy` to ship `trigger/` tasks.
-   Depends only on `build-push`, so it runs even while the VPS deploy is skipped.
+   Depends on `build-push` + `migrate`.
 
-Order matters: migrate before deploy; trigger-deploy after build-push.
+A `notify` job posts to Slack (if `SLACK_WEBHOOK_URL` is set) when any job fails.
+
+Order matters: migrate before deploy; trigger-deploy after build-push + migrate.
+
+## ghcr-prune.yml
+
+Weekly (Mon 03:17 UTC) + manual. Runs `scripts/prune-ghcr.sh`: keeps the newest
+5 versions, never removes `latest` or custom tags, prunes `sha-*` and untagged
+versions older than 30 days. No-op unless `GHCR_PACKAGES_PAT` is set.
+
+## Action pinning
+
+All third-party actions are pinned to full commit SHAs (with the release tag in
+a trailing comment). Dependabot (`github-actions` ecosystem) keeps them current.
 
 ## One-time server setup
 
