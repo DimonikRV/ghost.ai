@@ -24,8 +24,9 @@ For generic GitHub Actions authoring/auditing, also load
 
 - Reproducible installs: `npm ci --no-audit --no-fund` everywhere; keep
   `package-lock.json` current and committed.
-- Pin third-party Actions (full SHA preferred; otherwise a major version) and
-  keep them fresh via dependabot (npm + GitHub Actions).
+- Pin every third-party action to a verified full 40-character commit SHA and
+  keep them fresh via dependabot (npm + GitHub Actions). Do not fall back to
+  mutable major tags.
 - Single source of truth for the Node version (`.nvmrc`) — workflows,
   Dockerfile, and `engines` must all match it.
 - Least privilege: set `permissions:` on every job (`contents: read` minimum);
@@ -64,8 +65,9 @@ For generic GitHub Actions authoring/auditing, also load
   service container), build (uploads `.next` artifact), e2e (needs build; runs
   Playwright against the production build `npm run start`). Report uploaded on
   failure/cancellation; Slack `notify` job if `SLACK_WEBHOOK_URL`.
-- `cd.yml`: build-push → migrate → deploy → trigger-deploy. `deploy` is dormant
-  (repo var `ENABLE_VPS_DEPLOY == 'true'` + `VPS_*` secrets); it pins
+- `cd.yml`: build-push → migrate → {deploy, trigger-deploy}. After migrate,
+  `deploy` and `trigger-deploy` run in parallel. `deploy` is dormant (repo var
+  `ENABLE_VPS_DEPLOY == 'true'` + `VPS_*` secrets); it pins
   `GHOST_PILOT_TAG=sha-<7>`, waits for a healthy container, and rolls back on
   failure. `trigger-deploy` needs build-push + migrate.
 - `ghcr-prune.yml`: weekly `scripts/prune-ghcr.sh`; no-op without

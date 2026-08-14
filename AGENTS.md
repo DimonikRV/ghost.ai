@@ -9,6 +9,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 <!-- END:nextjs-agent-rules -->
 
 <!-- TRIGGER.DEV basic START -->
+
 # Trigger.dev Basic Tasks (v4)
 
 **MUST use `@trigger.dev/sdk`, NEVER `client.defineJob`**
@@ -29,7 +30,9 @@ export const processData = task({
   },
   run: async (payload: { userId: string; data: any[] }) => {
     // Task logic - runs for long time, no timeouts
-    console.log(`Processing ${payload.data.length} items for user ${payload.userId}`);
+    console.log(
+      `Processing ${payload.data.length} items for user ${payload.userId}`,
+    );
     return { processed: payload.data.length };
   },
 });
@@ -70,10 +73,13 @@ const handle = await tasks.trigger<typeof processData>("process-data", {
 });
 
 // Batch trigger (up to 1,000 items, 3MB per payload)
-const batchHandle = await tasks.batchTrigger<typeof processData>("process-data", [
-  { payload: { userId: "123", data: [{ id: 1 }] } },
-  { payload: { userId: "456", data: [{ id: 2 }] } },
-]);
+const batchHandle = await tasks.batchTrigger<typeof processData>(
+  "process-data",
+  [
+    { payload: { userId: "123", data: [{ id: 1 }] } },
+    { payload: { userId: "456", data: [{ id: 2 }] } },
+  ],
+);
 ```
 
 ### Debounced Triggering
@@ -86,10 +92,10 @@ await myTask.trigger(
   { userId: "123" },
   {
     debounce: {
-      key: "user-123-update",  // Unique key for debounce group
-      delay: "5s",              // Wait before executing
+      key: "user-123-update", // Unique key for debounce group
+      delay: "5s", // Wait before executing
     },
-  }
+  },
 );
 
 // Trailing mode: use payload from LAST trigger
@@ -99,13 +105,14 @@ await myTask.trigger(
     debounce: {
       key: "trailing-example",
       delay: "10s",
-      mode: "trailing",  // Default is "leading" (first payload)
+      mode: "trailing", // Default is "leading" (first payload)
     },
-  }
+  },
 );
 ```
 
 **Debounce modes:**
+
 - `leading` (default): Uses payload from first trigger, subsequent triggers only reschedule
 - `trailing`: Uses payload from most recent trigger
 
@@ -212,6 +219,7 @@ Use SDK (`@trigger.dev/sdk`), check `result.ok` before accessing `result.output`
 <!-- TRIGGER.DEV basic END -->
 
 <!-- TRIGGER.DEV advanced-tasks START -->
+
 # Trigger.dev Advanced Tasks (v4)
 
 **Advanced patterns and features for writing tasks**
@@ -235,7 +243,7 @@ export const processUser = task({
 // Trigger with tags
 await processUser.trigger(
   { userId: "123", orgId: "abc" },
-  { tags: ["priority", "user_123", "org_abc"] } // Max 10 tags per run
+  { tags: ["priority", "user_123", "org_abc"] }, // Max 10 tags per run
 );
 
 // Subscribe to tagged runs
@@ -262,19 +270,19 @@ Enhanced batch triggering with larger payloads and streaming ingestion.
 
 ### Rate Limiting (per environment)
 
-| Tier | Bucket Size | Refill Rate |
-|------|-------------|-------------|
-| Free | 1,200 runs | 100 runs/10 sec |
-| Hobby | 5,000 runs | 500 runs/5 sec |
-| Pro | 5,000 runs | 500 runs/5 sec |
+| Tier  | Bucket Size | Refill Rate     |
+| ----- | ----------- | --------------- |
+| Free  | 1,200 runs  | 100 runs/10 sec |
+| Hobby | 5,000 runs  | 500 runs/5 sec  |
+| Pro   | 5,000 runs  | 500 runs/5 sec  |
 
 ### Concurrent Batch Processing
 
-| Tier | Concurrent Batches |
-|------|-------------------|
-| Free | 1 |
-| Hobby | 10 |
-| Pro | 10 |
+| Tier  | Concurrent Batches |
+| ----- | ------------------ |
+| Free  | 1                  |
+| Hobby | 10                 |
+| Pro   | 10                 |
 
 ### Usage
 
@@ -336,10 +344,10 @@ await myTask.trigger(
   { userId: "123" },
   {
     debounce: {
-      key: "user-123-update",  // Unique identifier for debounce group
-      delay: "5s",              // Wait duration ("5s", "1m", or milliseconds)
+      key: "user-123-update", // Unique identifier for debounce group
+      delay: "5s", // Wait duration ("5s", "1m", or milliseconds)
     },
-  }
+  },
 );
 ```
 
@@ -349,14 +357,20 @@ await myTask.trigger(
 
 ```ts
 // First trigger sets the payload
-await myTask.trigger({ action: "first" }, {
-  debounce: { key: "my-key", delay: "10s" }
-});
+await myTask.trigger(
+  { action: "first" },
+  {
+    debounce: { key: "my-key", delay: "10s" },
+  },
+);
 
 // Second trigger only reschedules - payload remains "first"
-await myTask.trigger({ action: "second" }, {
-  debounce: { key: "my-key", delay: "10s" }
-});
+await myTask.trigger(
+  { action: "second" },
+  {
+    debounce: { key: "my-key", delay: "10s" },
+  },
+);
 // Task executes with { action: "first" }
 ```
 
@@ -371,11 +385,12 @@ await myTask.trigger(
       delay: "10s",
       mode: "trailing",
     },
-  }
+  },
 );
 ```
 
 In trailing mode, these options update with each trigger:
+
 - `payload` — task input data
 - `metadata` — run metadata
 - `tags` — run tags (replaces existing)
@@ -464,7 +479,7 @@ export const resilientTask = task({
       async () => {
         return await unstableApiCall(payload);
       },
-      { maxAttempts: 3 }
+      { maxAttempts: 3 },
     );
 
     // Conditional HTTP retries
@@ -528,7 +543,9 @@ export const paymentTask = task({
   },
   run: async (payload: { orderId: string; amount: number }) => {
     // Automatically scoped to this task run, so if the task is retried, the idempotency key will be the same
-    const idempotencyKey = await idempotencyKeys.create(`payment-${payload.orderId}`);
+    const idempotencyKey = await idempotencyKeys.create(
+      `payment-${payload.orderId}`,
+    );
 
     // Ensure payment is processed only once
     await chargeCustomer.trigger(payload, {
@@ -635,7 +652,7 @@ export const tracedTask = task({
 
         return userData;
       },
-      { userId: payload.userId }
+      { userId: payload.userId },
     );
 
     logger.debug("User fetched", { user: user.id });
@@ -701,6 +718,7 @@ Design tasks to be stateless, idempotent, and resilient to failures. Use metadat
 <!-- TRIGGER.DEV advanced-tasks END -->
 
 <!-- TRIGGER.DEV config START -->
+
 # Trigger.dev Configuration (v4)
 
 **Complete guide to configuring `trigger.config.ts` with build extensions**
@@ -915,7 +933,10 @@ extensions: [
     // ctx contains: environment, projectRef, env
     return [
       { name: "SECRET_KEY", value: await getSecret(ctx.environment) },
-      { name: "API_URL", value: ctx.environment === "prod" ? "api.prod.com" : "api.dev.com" },
+      {
+        name: "API_URL",
+        value: ctx.environment === "prod" ? "api.prod.com" : "api.dev.com",
+      },
     ];
   }),
 ];
@@ -934,7 +955,7 @@ extensions: [
       project: process.env.SENTRY_PROJECT,
       authToken: process.env.SENTRY_AUTH_TOKEN,
     }),
-    { placement: "last", target: "deploy" } // Optional config
+    { placement: "last", target: "deploy" }, // Optional config
   ),
 ];
 ```
@@ -986,7 +1007,10 @@ import { OpenAIInstrumentation } from "@langfuse/openai";
 export default defineConfig({
   // ... other config
   telemetry: {
-    instrumentations: [new PrismaInstrumentation(), new OpenAIInstrumentation()],
+    instrumentations: [
+      new PrismaInstrumentation(),
+      new OpenAIInstrumentation(),
+    ],
     exporters: [customExporter], // Optional custom exporters
   },
 });
@@ -1051,6 +1075,7 @@ Extensions only affect deployment, not local development. Use `external` array f
 <!-- TRIGGER.DEV config END -->
 
 <!-- TRIGGER.DEV scheduled-tasks START -->
+
 # Scheduled tasks (cron)
 
 Recurring tasks using cron. For one-off future runs, use the **delay** option.
@@ -1090,7 +1115,11 @@ schedules.task({
 
 schedules.task({
   id: "tokyo-5am",
-  cron: { pattern: "0 5 * * *", timezone: "Asia/Tokyo", environments: ["PRODUCTION", "STAGING"] },
+  cron: {
+    pattern: "0 5 * * *",
+    timezone: "Asia/Tokyo",
+    environments: ["PRODUCTION", "STAGING"],
+  },
   run: async () => {},
 });
 ```
@@ -1132,7 +1161,7 @@ export async function POST(req: Request) {
       timezone: data.timezone,
       externalId: data.userId,
       deduplicationKey: `${data.userId}-reminder`,
-    })
+    }),
   );
 }
 ```
@@ -1158,7 +1187,11 @@ export async function POST(req: Request) {
 ```ts
 await schedules.retrieve(id);
 await schedules.list();
-await schedules.update(id, { cron: "0 0 1 * *", externalId: "ext", deduplicationKey: "key" });
+await schedules.update(id, {
+  cron: "0 0 1 * *",
+  externalId: "ext",
+  deduplicationKey: "key",
+});
 await schedules.deactivate(id);
 await schedules.activate(id);
 await schedules.del(id);
@@ -1172,6 +1205,7 @@ Create/attach schedules visually (Task, Cron pattern, Timezone, Optional: Extern
 <!-- TRIGGER.DEV scheduled-tasks END -->
 
 <!-- TRIGGER.DEV realtime START -->
+
 # Trigger.dev Realtime (v4)
 
 **Real-time monitoring and updates for runs**
@@ -1291,14 +1325,20 @@ npm add @trigger.dev/react-hooks
 
 ```tsx
 "use client";
-import { useTaskTrigger, useRealtimeTaskTrigger } from "@trigger.dev/react-hooks";
+import {
+  useTaskTrigger,
+  useRealtimeTaskTrigger,
+} from "@trigger.dev/react-hooks";
 import type { myTask } from "../trigger/tasks";
 
 function TriggerComponent({ accessToken }: { accessToken: string }) {
   // Basic trigger
-  const { submit, handle, isLoading } = useTaskTrigger<typeof myTask>("my-task", {
-    accessToken,
-  });
+  const { submit, handle, isLoading } = useTaskTrigger<typeof myTask>(
+    "my-task",
+    {
+      accessToken,
+    },
+  );
 
   // Trigger with realtime updates
   const {
@@ -1313,7 +1353,10 @@ function TriggerComponent({ accessToken }: { accessToken: string }) {
         Trigger Task
       </button>
 
-      <button onClick={() => realtimeSubmit({ data: "realtime" })} disabled={isRealtimeLoading}>
+      <button
+        onClick={() => realtimeSubmit({ data: "realtime" })}
+        disabled={isRealtimeLoading}
+      >
         Trigger with Realtime
       </button>
 
@@ -1327,10 +1370,19 @@ function TriggerComponent({ accessToken }: { accessToken: string }) {
 
 ```tsx
 "use client";
-import { useRealtimeRun, useRealtimeRunsWithTag } from "@trigger.dev/react-hooks";
+import {
+  useRealtimeRun,
+  useRealtimeRunsWithTag,
+} from "@trigger.dev/react-hooks";
 import type { myTask } from "../trigger/tasks";
 
-function SubscribeComponent({ runId, accessToken }: { runId: string; accessToken: string }) {
+function SubscribeComponent({
+  runId,
+  accessToken,
+}: {
+  runId: string;
+  accessToken: string;
+}) {
   // Subscribe to specific run
   const { run, error } = useRealtimeRun<typeof myTask>(runId, {
     accessToken,
@@ -1369,7 +1421,13 @@ function SubscribeComponent({ runId, accessToken }: { runId: string; accessToken
 import { useRealtimeStream } from "@trigger.dev/react-hooks";
 import { aiStream } from "../trigger/streams";
 
-function StreamComponent({ runId, accessToken }: { runId: string; accessToken: string }) {
+function StreamComponent({
+  runId,
+  accessToken,
+}: {
+  runId: string;
+  accessToken: string;
+}) {
   // Pass defined stream directly for type safety
   const { parts, error } = useRealtimeStream(aiStream, runId, {
     accessToken,
@@ -1392,10 +1450,18 @@ function StreamComponent({ runId, accessToken }: { runId: string; accessToken: s
 "use client";
 import { useWaitToken } from "@trigger.dev/react-hooks";
 
-function WaitTokenComponent({ tokenId, accessToken }: { tokenId: string; accessToken: string }) {
+function WaitTokenComponent({
+  tokenId,
+  accessToken,
+}: {
+  tokenId: string;
+  accessToken: string;
+}) {
   const { complete } = useWaitToken(tokenId, { accessToken });
 
-  return <button onClick={() => complete({ approved: true })}>Approve Task</button>;
+  return (
+    <button onClick={() => complete({ approved: true })}>Approve Task</button>
+  );
 }
 ```
 
@@ -1406,7 +1472,13 @@ function WaitTokenComponent({ tokenId, accessToken }: { tokenId: string; accessT
 import { useRun } from "@trigger.dev/react-hooks";
 import type { myTask } from "../trigger/tasks";
 
-function SWRComponent({ runId, accessToken }: { runId: string; accessToken: string }) {
+function SWRComponent({
+  runId,
+  accessToken,
+}: {
+  runId: string;
+  accessToken: string;
+}) {
   const { run, error, isLoading } = useRun<typeof myTask>(runId, {
     accessToken,
     refreshInterval: 0, // Disable polling (recommended)
@@ -1442,6 +1514,7 @@ Key properties available in run subscriptions:
 <!-- TRIGGER.DEV realtime END -->
 
 <!-- DevOps START -->
+
 # DevOps & CI/CD (Ghost Pilot)
 
 The app ships as a Docker image to GHCR and deploys to a VPS via Docker Compose,
@@ -1480,16 +1553,17 @@ driven by GitHub Actions. Full details live in
   `.next` artifact, e2e against the **production build**). Playwright report
   uploaded on failure/cancellation; Slack `notify` job if `SLACK_WEBHOOK_URL`.
 - `cd.yml`: push to `main` → build-push (GHCR, `latest` + `sha-*` + short
-  `sha-<7>`, emits `sha_tag`) → migrate (prod `DATABASE_URL`) → deploy →
-  trigger-deploy (needs build-push + migrate). The VPS `deploy` job
-  (ssh-action, pinned tag, healthcheck wait + rollback) is dormant — gated
-  behind repo variable `ENABLE_VPS_DEPLOY=true` plus `VPS_*` secrets.
+  `sha-<7>`, emits `sha_tag`) → migrate (prod `DATABASE_URL`) → {deploy,
+  trigger-deploy}. After migrate completes, the VPS `deploy` job and the
+  `trigger-deploy` job run in parallel. The VPS `deploy` job (ssh-action,
+  pinned tag, healthcheck wait + rollback) is dormant — gated behind repo
+  variable `ENABLE_VPS_DEPLOY=true` plus `VPS_*` secrets.
 - `ghcr-prune.yml`: weekly cleanup of stale `sha-*`/untagged images
   (`scripts/prune-ghcr.sh`), no-op without `GHCR_PACKAGES_PAT`.
 - One-time server bootstrap: `sudo bash scripts/setup_server.sh`
   (default app dir `/opt/ghost-pilot`).
 - No Docker CLI on the local host: validate image changes via CI; locally use
-  `npm run lint`, `npm run typecheck`, `npm run build`, `docker compose config`.
+`npm run lint`, `npm run typecheck`, `npm run build`, `docker compose config`.
 <!-- DevOps END -->
 
 <!-- TRIGGER.DEV realtime END -->

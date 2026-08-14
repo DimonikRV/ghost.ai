@@ -45,10 +45,11 @@ Always check the instruction docs first:
   e2e) — e2e downloads the `.next` build artifact and runs Playwright against
   the **production build** (`npm run start`). Playwright report uploaded on
   failure/cancellation; `notify` job posts to Slack if `SLACK_WEBHOOK_URL`.
-- `cd.yml` job order (push to `main`): build-push → migrate → deploy →
-  trigger-deploy. The `deploy` (VPS ssh-action) job is **dormant**: gated behind
-  repository variable `ENABLE_VPS_DEPLOY == 'true'` and the `VPS_*` secrets.
-  `trigger-deploy` needs `build-push` + `migrate`.
+- `cd.yml` job order (push to `main`): build-push → migrate → {deploy,
+  trigger-deploy}. After migrate, the `deploy` (VPS ssh-action) job and
+  `trigger-deploy` run in parallel. The `deploy` job is **dormant**: gated
+  behind repository variable `ENABLE_VPS_DEPLOY == 'true'` and the `VPS_*`
+  secrets. `trigger-deploy` needs `build-push` + `migrate`.
 - `ghcr-prune.yml`: weekly `scripts/prune-ghcr.sh` cleanup (keeps newest 5,
   prunes `sha-*`/untagged older than 30 days); no-op without `GHCR_PACKAGES_PAT`.
 - `.env*` is gitignored, so all CI/CD config must come from GitHub secrets/vars.

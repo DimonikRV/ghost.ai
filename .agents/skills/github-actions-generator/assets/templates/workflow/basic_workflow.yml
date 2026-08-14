@@ -18,8 +18,8 @@ on:
   push:
     branches: [main, develop]
     paths:
-      - '[PATH_PATTERN]/**'
-      - '!**.md'
+      - "[PATH_PATTERN]/**"
+      - "!**.md"
 
   # Trigger on pull requests
   pull_request:
@@ -30,23 +30,23 @@ on:
   workflow_dispatch:
     inputs:
       environment:
-        description: 'Environment to deploy'
+        description: "Environment to deploy"
         required: true
         type: choice
         options:
           - dev
           - staging
           - production
-        default: 'dev'
+        default: "dev"
       debug:
-        description: 'Enable debug mode'
+        description: "Enable debug mode"
         required: false
         type: boolean
         default: false
 
   # Scheduled trigger (daily at 2 AM UTC)
   schedule:
-    - cron: '0 2 * * *'
+    - cron: "0 2 * * *"
 
 # Set default permissions to read-only (security best practice)
 permissions:
@@ -59,7 +59,7 @@ concurrency:
 
 # Environment variables available to all jobs
 env:
-  [ENV_VAR_NAME]: '[ENV_VAR_VALUE]'
+  [ENV_VAR_NAME]: "[ENV_VAR_VALUE]"
 
 jobs:
   # Job 1: Linting and validation
@@ -81,7 +81,7 @@ jobs:
         uses: [SETUP_ACTION]
         with:
           [SETUP_INPUT]: [SETUP_VALUE]
-          cache: '[CACHE_TYPE]'
+          cache: "[CACHE_TYPE]"
 
       - name: Install dependencies
         run: [INSTALL_COMMAND]
@@ -97,16 +97,12 @@ jobs:
 
     permissions:
       contents: read
-      checks: write  # For test reporting
+      checks: write # For test reporting
 
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest]
         [VERSION_KEY]: [[VERSION_1], [VERSION_2], [VERSION_3]]
-        exclude:
-          # Exclude expensive combinations if needed
-          - os: macos-latest
-            [VERSION_KEY]: [VERSION_1]
       fail-fast: false
 
     steps:
@@ -117,7 +113,7 @@ jobs:
         uses: [SETUP_ACTION]
         with:
           [VERSION_INPUT]: ${{ matrix.[VERSION_KEY] }}
-          cache: '[CACHE_TYPE]'
+          cache: "[CACHE_TYPE]"
 
       - name: Install dependencies
         run: [INSTALL_COMMAND]
@@ -162,7 +158,7 @@ jobs:
         uses: [SETUP_ACTION]
         with:
           [SETUP_INPUT]: [SETUP_VALUE]
-          cache: '[CACHE_TYPE]'
+          cache: "[CACHE_TYPE]"
 
       - name: Install dependencies
         run: [INSTALL_COMMAND]

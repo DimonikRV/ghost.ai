@@ -43,11 +43,15 @@ deployment files: `Dockerfile`, `.dockerignore`, `docker-compose.yml`,
 
 - `docker-compose.yml` runs a single `app` service; the database is cloud Prisma
   Postgres (no DB container in prod).
-- The image tag is `ghcr.io/dimonikrv/ghost-pilot:${GHOST_PILOT_TAG:-latest}` —
-  deploys pin an immutable `sha-<7>` tag via `GHOST_PILOT_TAG`; `latest` is only
-  the manual-deploy default.
+- The image tag is `ghcr.io/dimonikrv/ghost-pilot:${GHOST_PILOT_TAG}` —
+  deploy and rollback paths must set `GHOST_PILOT_TAG` to an image digest or an
+  explicitly collision-free, non-overwritable tag. Never default automation to
+  `latest`; `latest` is only for manual deployments.
 - Healthcheck: `node -e fetch(...)` against `/api/health` (must stay in Clerk's
   public routes in `proxy.ts` — do not remove it). CD waits for it to become
-  healthy and rolls back to the previous tag on failure.
+  healthy and rolls back both the image and the migrated schema on failure.
+  Use expand/contract, backward-compatible migrations and validate the previous
+  image against the migrated schema; otherwise document a tested database restore
+  procedure before deploying.
 - Update images with `GHOST_PILOT_TAG=<sha> docker compose pull app &&
   GHOST_PILOT_TAG=<sha> docker compose up -d app`.

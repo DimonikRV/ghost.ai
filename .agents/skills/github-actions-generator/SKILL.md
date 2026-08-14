@@ -156,9 +156,9 @@ See `references/advanced-triggers.md` for complete patterns.
 **Triggers:** "Add security scanning...", "Add dependency review...", "Generate SBOM..."
 
 **Components:**
-- **Dependency Review:** `actions/dependency-review-action@v4`
-- **SBOM Attestations:** `actions/attest-sbom@v2`
-- **CodeQL Analysis:** `github/codeql-action`
+- **Dependency Review:** `actions/dependency-review-action@05fe4576374b728f0c523d6a13d64c25081e0803 # v4.8.3`
+- **SBOM Attestations:** `actions/attest-sbom@bd218ad0dbcb3e146bd073d1d9c6d78e08aa8a0b # v2.4.0`
+- **CodeQL Analysis:** `github/codeql-action/upload-sarif@ae9ef3a1d2e3413523c3741725c30064970cc0d4 # v3.32.5`
 
 **Permission Model:**
 Use a read-only workflow-level baseline, then elevate only in the security job that requires write scopes.

@@ -26,10 +26,10 @@ on:
   workflow_call:
     inputs:
       [INPUT_NAME]:
-        description: '[INPUT_DESCRIPTION]'
+        description: "[INPUT_DESCRIPTION]"
         required: [true/false]
-        type: [string/boolean/number/choice/environment]
-        default: '[DEFAULT_VALUE]'  # Optional, only for optional inputs
+        type: [string/boolean/number]
+        default: "[DEFAULT_VALUE]" # Optional, only for optional inputs
 
       # Add more inputs as needed
       # Example types:
@@ -41,16 +41,15 @@ on:
 
     secrets:
       [SECRET_NAME]:
-        description: '[SECRET_DESCRIPTION]'
+        description: "[SECRET_DESCRIPTION]"
         required: [true/false]
 
       # Add more secrets as needed
-      # Alternatively, use 'secrets: inherit' to pass all secrets
-      # (use sparingly for security)
+      # Prefer explicit secret mappings to avoid implicit inheritance.
 
     outputs:
       [OUTPUT_NAME]:
-        description: '[OUTPUT_DESCRIPTION]'
+        description: "[OUTPUT_DESCRIPTION]"
         value: ${{ jobs.[JOB_ID].outputs.[OUTPUT_KEY] }}
 
       # Add more outputs as needed
@@ -62,12 +61,12 @@ permissions:
 
 # Environment variables available to all jobs
 env:
-  [ENV_VAR_NAME]: '[ENV_VAR_VALUE]'
+  [ENV_VAR_NAME]: "[ENV_VAR_VALUE]"
 
 jobs:
   [JOB_ID]:
     name: [JOB_NAME]
-    runs-on: [ubuntu-latest/windows-latest/macos-latest]
+    runs-on: ubuntu-latest
     timeout-minutes: [TIMEOUT_MINUTES]
 
     # Job-specific permissions
@@ -97,7 +96,7 @@ jobs:
   # Add more jobs as needed
   [ANOTHER_JOB_ID]:
     name: [ANOTHER_JOB_NAME]
-    needs: [JOB_ID]  # Optional: depend on previous job
+    needs: [JOB_ID] # Optional: depend on previous job
     runs-on: ubuntu-latest
 
     steps:

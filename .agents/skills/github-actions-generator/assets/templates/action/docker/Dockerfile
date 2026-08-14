@@ -1,5 +1,5 @@
 # Base image
-FROM [BASE_IMAGE]:[TAG]
+FROM [BASE_IMAGE]@[DIGEST] # [TAG]
 
 # Install required tools with minimal packages, then clean package caches
 RUN [PACKAGE_MANAGER] update && \
@@ -7,9 +7,6 @@ RUN [PACKAGE_MANAGER] update && \
     [PACKAGE_1] \
     [PACKAGE_2] \
     && [CLEANUP_COMMAND]
-
-# Set working directory
-WORKDIR /app
 
 # Copy application files
 COPY entrypoint.sh /entrypoint.sh

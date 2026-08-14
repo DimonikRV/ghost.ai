@@ -21,6 +21,8 @@ Required for CD (all mandatory; without them the deploy fails):
 - `DATABASE_URL` — production Prisma Postgres URL (used by `prisma migrate deploy`).
 - `VPS_HOST`, `VPS_USER`, `VPS_SSH_KEY`, `VPS_PORT` (optional, default 22).
 - `TRIGGER_PROJECT_REF`, `TRIGGER_SECRET_KEY` — for `npx trigger.dev deploy`.
+- `GHCR_PAT` — required for the VPS deploy path when the GHCR package remains
+  private; used to pull the image on the server.
 
 Optional:
 - `SLACK_WEBHOOK_URL` — sends failure notifications (CI + CD `notify` jobs).
@@ -66,11 +68,13 @@ Triggered on push to `main`. Jobs, ordered:
    repository variable `ENABLE_VPS_DEPLOY == 'true'`. Until that is set (and the
    `VPS_*` secrets exist) the job is skipped.
 4. **trigger-deploy** — `npx trigger.dev deploy` to ship `trigger/` tasks.
-   Depends on `build-push` + `migrate`.
+   Requires `build-push` + `migrate` and runs in parallel with `deploy` after
+   `migrate` completes.
 
 A `notify` job posts to Slack (if `SLACK_WEBHOOK_URL` is set) when any job fails.
 
-Order matters: migrate before deploy; trigger-deploy after build-push + migrate.
+Order matters: migrate before deploy and trigger-deploy; deploy and
+trigger-deploy run in parallel after migrate completes.
 
 ## ghcr-prune.yml
 
