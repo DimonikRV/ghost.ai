@@ -119,22 +119,26 @@ test.describe("Projects sidebar", () => {
 
     await projectActions.focus();
     await page.keyboard.press("Enter");
-    await expect(page.getByRole("button", { name: "Rename" })).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Rename", exact: true }),
+    ).toBeVisible();
 
-    await page.getByRole("button", { name: "Rename" }).focus();
+    await page.getByRole("button", { name: "Rename", exact: true }).focus();
     await page.keyboard.press("Enter");
-    await expect(page.getByRole("dialog")).toContainText("Rename project");
+    await expect(page.getByRole("dialog")).toContainText("Rename Project");
 
     await page.getByRole("button", { name: "Cancel" }).click();
     await page.keyboard.press("Escape");
 
     await projectActions.focus();
     await page.keyboard.press("Enter");
-    await expect(page.getByRole("button", { name: "Delete" })).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Delete", exact: true }),
+    ).toBeVisible();
 
-    await page.getByRole("button", { name: "Delete" }).focus();
+    await page.getByRole("button", { name: "Delete", exact: true }).focus();
     await page.keyboard.press("Enter");
-    await expect(page.getByRole("dialog")).toContainText("Delete project");
+    await expect(page.getByRole("dialog")).toContainText("Delete Project");
 
     await expect(page).not.toHaveURL(new RegExp(`/editor/${project.id}$`), {
       timeout: NAV_TIMEOUT,
