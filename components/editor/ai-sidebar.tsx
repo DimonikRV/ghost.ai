@@ -56,25 +56,22 @@ export function AiSidebar({ isOpen, onClose }: AiSidebarProps) {
         handleSend();
       }
     },
-    [handleSend]
+    [handleSend],
   );
 
-  const handleStarterClick = useCallback(
-    (prompt: string) => {
-      setInput(prompt);
-      // Auto-send after a tick so the state update batches
-      setTimeout(() => {
-        const userMsg: ChatMessage = {
-          id: `msg-${Date.now()}`,
-          role: "user",
-          content: prompt,
-        };
-        setMessages((prev) => [...prev, userMsg]);
-        setInput("");
-      }, 0);
-    },
-    []
-  );
+  const handleStarterClick = useCallback((prompt: string) => {
+    setInput(prompt);
+    // Auto-send after a tick so the state update batches
+    setTimeout(() => {
+      const userMsg: ChatMessage = {
+        id: `msg-${Date.now()}`,
+        role: "user",
+        content: prompt,
+      };
+      setMessages((prev) => [...prev, userMsg]);
+      setInput("");
+    }, 0);
+  }, []);
 
   const handleTextareaInput = useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -83,7 +80,7 @@ export function AiSidebar({ isOpen, onClose }: AiSidebarProps) {
       el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
       setInput(el.value);
     },
-    []
+    [],
   );
 
   return (
@@ -101,7 +98,7 @@ export function AiSidebar({ isOpen, onClose }: AiSidebarProps) {
       <aside
         className={cn(
           "fixed top-12 right-0 bottom-0 z-30 flex w-80 flex-col bg-card/95 border-l border-border shadow-lg transition-transform duration-200 ease-in-out md:shadow-none",
-          isOpen ? "translate-x-0" : "translate-x-full"
+          isOpen ? "translate-x-0" : "translate-x-full",
         )}
         {...(!isOpen && { inert: true, "aria-hidden": "true" })}
       >
@@ -175,7 +172,7 @@ export function AiSidebar({ isOpen, onClose }: AiSidebarProps) {
                         "max-w-[85%] rounded-lg px-3 py-2 text-sm",
                         msg.role === "user"
                           ? "ml-auto bg-accent-brand/20 border-accent-brand/50 border-2 text-foreground"
-                          : "mr-auto bg-card border border-border text-accent-foreground"
+                          : "mr-auto bg-card border border-border text-accent-foreground",
                       )}
                     >
                       {msg.content}
@@ -193,7 +190,7 @@ export function AiSidebar({ isOpen, onClose }: AiSidebarProps) {
                 onChange={handleTextareaInput}
                 onKeyDown={handleKeyDown}
                 placeholder="Ask Ghost AI..."
-                className="min-h-[72px] max-h-[160px] resize-none text-sm"
+                className="min-h-18 max-h-40 resize-none text-sm"
               />
               <button
                 type="button"
@@ -203,7 +200,7 @@ export function AiSidebar({ isOpen, onClose }: AiSidebarProps) {
                   "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md transition-colors",
                   input.trim()
                     ? "bg-accent-brand text-white hover:bg-accent-brand/90"
-                    : "bg-muted text-muted-foreground cursor-not-allowed"
+                    : "bg-muted text-muted-foreground cursor-not-allowed",
                 )}
                 aria-label="Send message"
               >
@@ -234,8 +231,8 @@ export function AiSidebar({ isOpen, onClose }: AiSidebarProps) {
                 </span>
               </div>
               <p className="text-xs text-muted-foreground">
-                Microservices-based e-commerce system with product catalog, cart,
-                checkout, and order management.
+                Microservices-based e-commerce system with product catalog,
+                cart, checkout, and order management.
               </p>
               <button
                 type="button"

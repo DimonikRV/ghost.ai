@@ -1,0 +1,11 @@
+import { describe, expect, it } from "vitest";
+import { GET } from "@/app/api/health/route";
+import { makeGet } from "./helpers";
+
+describe("GET /api/health", () => {
+  it("returns 200 with status ok", async () => {
+    const res = await GET(makeGet("/api/health"));
+    expect(res.status).toBe(200);
+    await expect(res.json()).resolves.toEqual({ status: "ok" });
+  });
+});

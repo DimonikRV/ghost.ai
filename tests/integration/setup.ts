@@ -1,5 +1,10 @@
 import "dotenv/config";
-import { vi } from "vitest";
+import { vi, afterEach } from "vitest";
+import { cleanup } from "@testing-library/react";
+
+afterEach(() => {
+  cleanup();
+});
 
 vi.mock("@clerk/nextjs/server", async () => {
   const { clerkState } = await import("./clerk-state");
@@ -39,4 +44,25 @@ vi.mock("@clerk/nextjs/server", async () => {
 vi.mock("@vercel/blob", async () => {
   const { blobPut, blobGet } = await import("./clerk-state");
   return { put: blobPut, get: blobGet };
+});
+
+vi.mock("@trigger.dev/sdk", () => ({
+  tasks: {
+    trigger: vi.fn().mockResolvedValue({ id: "run_test" }),
+  },
+  auth: {
+    createPublicToken: vi.fn().mockResolvedValue("tok_test"),
+  },
+}));
+
+vi.mock("@liveblocks/node", () => {
+  const allowSession = vi.fn().mockReturnValue({});
+  const prepareSession = vi.fn().mockReturnValue({ allowSession });
+  const identifyUser = vi.fn();
+  return {
+    Liveblocks: vi.fn().mockImplementation(() => ({
+      prepareSession,
+      identifyUser,
+    })),
+  };
 });

@@ -285,10 +285,17 @@ Update this file after every meaningful implementation change.
   - `POST /api/liveblocks-auth` — Clerk auth gate, project access check via `checkProjectAccess()`, `prepareSession` → `allow` → `authorize` flow, returns `{ token }`; 401/400/403/500 error responses
   - `npm run build` passes clean
 
+## Current Work
+
+- **24-test-coverage** — Test coverage enhancement:
+  - Spec: `context/feature-specs/24-test-coverage.md`
+  - Goal: 80% line coverage with Vitest + @testing-library/react + Codecov CI
+  - Skills loaded: nextjs, prisma-client-api, clerk, clerk-testing, liveblocks-best-practices, github-actions-generator, github-actions-validator, devops, ci-cd
+
 ## Next Up
 
-- Remaining feature specs (TBD)
 - Shape-specific node rendering (spec 12 scope limit — currently all shapes render as bordered rectangles)
+- Remaining feature specs (TBD)
 
 ## Open Questions
 
