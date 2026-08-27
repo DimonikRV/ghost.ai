@@ -82,4 +82,22 @@ describe("CreateProjectDialog", () => {
     expect(screen.getAllByText("My Project 2").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("My Project 3").length).toBeGreaterThanOrEqual(1);
   });
+
+  it("shows an inline error and disables Create for invalid characters", () => {
+    render(<CreateProjectDialog {...defaultProps} name="Привет" />);
+    expect(
+      screen.getByText(/Latin letters/i),
+    ).toBeInTheDocument();
+    const buttons = screen.getAllByRole("button", { name: /^Create$/ });
+    const btn = buttons[buttons.length - 1];
+    expect(btn).toBeDisabled();
+  });
+
+  it("does not submit on Enter when the name contains invalid characters", () => {
+    const onSubmit = vi.fn();
+    render(<CreateProjectDialog {...defaultProps} name="Bad-Name!" onSubmit={onSubmit} />);
+    const input = screen.getAllByPlaceholderText("Project name")[0];
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
 });

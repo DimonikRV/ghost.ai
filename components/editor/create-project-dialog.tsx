@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
+import { projectNameError } from "@/lib/validate-project-name";
 
 interface CreateProjectDialogProps {
   open: boolean;
@@ -35,6 +36,9 @@ export function CreateProjectDialog({
   error,
   suggestions = [],
 }: CreateProjectDialogProps) {
+  const nameError = name.trim() ? projectNameError(name.trim()) : null;
+  const submitDisabled = !name.trim() || nameError !== null || isLoading;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -56,7 +60,7 @@ export function CreateProjectDialog({
             disabled={isLoading}
             aria-describedby="create-room-id-preview"
             onKeyDown={(e) => {
-              if (e.key === "Enter" && name.trim() && !isLoading) {
+              if (e.key === "Enter" && name.trim() && nameError === null && !isLoading) {
                 e.preventDefault();
                 onSubmit();
               }
@@ -67,9 +71,9 @@ export function CreateProjectDialog({
               Room ID: <span className="font-mono">{roomId}</span>
             </p>
           )}
-          {!roomId && name.trim() && (
+          {!roomId && name.trim() && nameError && (
             <p id="create-room-id-preview" className="text-xs text-destructive">
-              Name contains only special characters. Use letters, numbers, or spaces.
+              {nameError}
             </p>
           )}
           {error && (
@@ -104,7 +108,7 @@ export function CreateProjectDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
             Cancel
           </Button>
-          <Button onClick={onSubmit} disabled={!name.trim() || isLoading}>
+          <Button onClick={onSubmit} disabled={submitDisabled}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Create
           </Button>

@@ -30,9 +30,7 @@ if ! flock -n 9; then
   exit 0
 fi
 
-echo "$$" > "${PID_FILE}"
 cleanup() {
-  rm -f "${PID_FILE}"
   flock -u 9
 }
 trap cleanup EXIT
@@ -40,21 +38,46 @@ trap cleanup EXIT
 echo "[container] Starting Next.js + Trigger.dev in background..."
 cd "${WORKSPACE_ROOT}"
 
-# Start dev services detached from the terminal so the postStartCommand returns immediately.
-# Output goes to log files so it never blocks on a TTY.
-nohup npx concurrently \
+# Start dev services detached from the terminal. Output goes to log files so it
+# never blocks on a TTY. setsid runs them in a new session so they survive the
+# postStartCommand session teardown; < /dev/null detaches stdin (otherwise the
+# backgrounded process may fail or hang on the closed terminal).
+CONCURRENTLY_BIN="$(command -v concurrently || true)"
+if [ -z "${CONCURRENTLY_BIN}" ]; then
+  echo "[container] concurrently is not installed; rebuild the devcontainer."
+  exit 1
+fi
+
+setsid nohup "${CONCURRENTLY_BIN}" \
   --names "next,trigger" \
   --prefix-colors "cyan,magenta" \
   "npm run dev > ${LOG_DIR}/next.log 2>&1" \
   "npm run trigger:dev > ${LOG_DIR}/trigger.log 2>&1" \
-  > "${LOG_DIR}/concurrently.log" 2>&1 &
+  > "${LOG_DIR}/concurrently.log" 2>&1 < /dev/null &
 
 DEV_PID=$!
+echo "${DEV_PID}" > "${PID_FILE}"
 echo "${DEV_PID}" > "${LOG_DIR}/dev.pid"
-echo "[container] Dev services started in background (pid ${DEV_PID})"
 echo "[container] Next.js logs:   tail -f ${LOG_DIR}/next.log"
 echo "[container] Trigger logs:   tail -f ${LOG_DIR}/trigger.log"
 echo "[container] Dashboard:     http://localhost:3000"
 
-# Detach completely - this makes the postStartCommand return immediately.
-disown || true
+# Wait for Next.js to bind its port so postStartCommand reports a real startup
+# failure instead of claiming success while the background process is booting.
+for _ in $(seq 1 60); do
+  if (echo >/dev/tcp/127.0.0.1/3000) 2>/dev/null; then
+    echo "[container] Dev services ready (pid ${DEV_PID})"
+    disown || true
+    exit 0
+  fi
+
+  if ! kill -0 "${DEV_PID}" 2>/dev/null; then
+    echo "[container] Dev services exited during startup. See ${LOG_DIR}/concurrently.log"
+    exit 1
+  fi
+
+  sleep 1
+done
+
+echo "[container] Timed out waiting for Next.js. See ${LOG_DIR}/next.log"
+exit 1

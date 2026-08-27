@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
 import type { ProjectItem } from "@/hooks/use-project-actions";
+import { projectNameError } from "@/lib/validate-project-name";
 
 interface RenameProjectDialogProps {
   open: boolean;
@@ -36,6 +37,9 @@ export function RenameProjectDialog({
   error,
   suggestions = [],
 }: RenameProjectDialogProps) {
+  const nameError = name.trim() ? projectNameError(name.trim()) : null;
+  const submitDisabled = !name.trim() || nameError !== null || isLoading;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -57,12 +61,17 @@ export function RenameProjectDialog({
             disabled={isLoading}
             aria-describedby="rename-current-name"
             onKeyDown={(e) => {
-              if (e.key === "Enter" && name.trim() && !isLoading) {
+              if (e.key === "Enter" && name.trim() && nameError === null && !isLoading) {
                 e.preventDefault();
                 onSubmit();
               }
             }}
           />
+          {nameError && (
+            <p role="alert" className="text-xs pt-1 text-destructive">
+              {nameError}
+            </p>
+          )}
           {error && (
             <p role="alert" className="text-xs text-destructive">
               {error}
@@ -95,7 +104,7 @@ export function RenameProjectDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
             Cancel
           </Button>
-          <Button onClick={onSubmit} disabled={!name.trim() || isLoading}>
+          <Button onClick={onSubmit} disabled={submitDisabled}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Rename
           </Button>

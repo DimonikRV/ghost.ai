@@ -8,9 +8,13 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 const isAccelerate = process.env.DATABASE_URL?.startsWith("prisma+postgres://");
+const directDatabaseUrl = process.env.DATABASE_URL?.replace(
+  /([?&])sslmode=(prefer|require|verify-ca)(?=&|$)/,
+  "$1sslmode=verify-full",
+);
 
 function createDirectClient(): PrismaClient {
-  const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+  const adapter = new PrismaPg({ connectionString: directDatabaseUrl });
   return new PrismaClient({
     adapter,
     log:

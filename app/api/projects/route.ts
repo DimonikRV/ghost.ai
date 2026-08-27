@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { suggestAlternativeNames, toNameKey } from "@/lib/slugify";
+import { projectNameError } from "@/lib/validate-project-name";
 
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 100;
@@ -68,6 +69,11 @@ export async function POST(req: NextRequest) {
       { error: `Name must be ${MAX_NAME_LENGTH} characters or less` },
       { status: 400 },
     );
+  }
+
+  const nameError = projectNameError(name);
+  if (nameError) {
+    return NextResponse.json({ error: nameError }, { status: 400 });
   }
 
   const nameKey = toNameKey(name);

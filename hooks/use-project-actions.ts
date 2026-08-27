@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { slugify } from "@/lib/slugify";
+import { projectNameError } from "@/lib/validate-project-name";
 
 type DialogType = "create" | "rename" | "delete" | null;
 
@@ -171,6 +172,10 @@ export function useProjectActions(): UseProjectActionsReturn {
 
   const handleCreateSubmit = useCallback(async () => {
     if (!createName.trim()) return;
+    if (projectNameError(createName.trim())) {
+      setCreateError(projectNameError(createName.trim()));
+      return;
+    }
 
     const submit = async () => {
       const res = await fetch("/api/projects", {
@@ -196,6 +201,10 @@ export function useProjectActions(): UseProjectActionsReturn {
 
   const handleRenameSubmit = useCallback(async () => {
     if (!renameName.trim() || !selectedProject) return;
+    if (projectNameError(renameName.trim())) {
+      setRenameError(projectNameError(renameName.trim()));
+      return;
+    }
 
     const submit = async () => {
       const res = await fetch(`/api/projects/${selectedProject.id}`, {

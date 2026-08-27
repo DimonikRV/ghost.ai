@@ -109,6 +109,32 @@ describe("useProjectActions", () => {
     );
   });
 
+  it("handleCreateSubmit does not POST when the name has invalid characters", async () => {
+    const { result } = renderActions();
+    act(() => result.current.setCreateName("Привет!"));
+
+    await act(async () => {
+      await result.current.handleCreateSubmit();
+    });
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(result.current.createError).toContain("Latin letters");
+  });
+
+  it("handleRenameSubmit does not PATCH when the name has invalid characters", async () => {
+    const { result } = renderActions();
+    const project = { id: "p1", name: "Old", description: null, status: "active", createdAt: "", updatedAt: "" };
+    act(() => result.current.openRename(project));
+    act(() => result.current.setRenameName("Bad!! Name"));
+
+    await act(async () => {
+      await result.current.handleRenameSubmit();
+    });
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(result.current.renameError).toContain("Latin letters");
+  });
+
   it("handleRenameSubmit makes PATCH to /api/projects/:id", async () => {
     fetchMock.mockResolvedValue({ ok: true, json: () => Promise.resolve({}) });
 

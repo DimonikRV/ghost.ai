@@ -116,7 +116,7 @@ describe("POST /api/projects", () => {
       },
     });
 
-    const res = await POST(makeJson("/api/projects", "POST", { name: "alpha project!" }));
+    const res = await POST(makeJson("/api/projects", "POST", { name: "alpha project" }));
     expect(res.status).toBe(409);
     const body = await res.json();
     expect(body.error).toBe("A project with this name already exists");
@@ -131,24 +131,39 @@ describe("POST /api/projects", () => {
       ],
     });
 
-    const res = await POST(makeJson("/api/projects", "POST", { name: "alpha project!" }));
+    const res = await POST(makeJson("/api/projects", "POST", { name: "alpha project" }));
     expect(res.status).toBe(409);
     const body = await res.json();
     expect(body.suggestions).toEqual(["Alpha Project 3", "Alpha Project 4", "Alpha Project 5"]);
   });
 
-  it("allows distinct special-character-only names", async () => {
-    const first = await POST(makeJson("/api/projects", "POST", { name: "!!!" }));
-    expect(first.status).toBe(201);
-
-    const second = await POST(makeJson("/api/projects", "POST", { name: "???" }));
-    expect(second.status).toBe(201);
+  it("rejects names with special symbols", async () => {
+    const res = await POST(makeJson("/api/projects", "POST", { name: "My Project!!" }));
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toContain("Latin letters");
   });
 
-  it("rejects recreating a special-character-only name", async () => {
-    await POST(makeJson("/api/projects", "POST", { name: "!!!" }));
+  it("rejects names with Cyrillic characters", async () => {
+    const res = await POST(makeJson("/api/projects", "POST", { name: "Привет" }));
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toContain("Latin letters");
+  });
 
+  it("rejects special-character-only names", async () => {
     const res = await POST(makeJson("/api/projects", "POST", { name: "!!!" }));
-    expect(res.status).toBe(409);
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toContain("Latin letters");
+  });
+
+  it("allows names with Latin letters, numbers, spaces, hyphens and underscores", async () => {
+    const res = await POST(
+      makeJson("/api/projects", "POST", { name: "My Project_2 - v1" }),
+    );
+    expect(res.status).toBe(201);
+    const body = await res.json();
+    expect(body.name).toBe("My Project_2 - v1");
   });
 });

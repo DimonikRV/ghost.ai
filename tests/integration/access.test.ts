@@ -157,6 +157,26 @@ describe("PATCH /api/projects/[projectId]", () => {
     expect(res.status).toBe(400);
   });
 
+  it("rejects a rename containing special symbols", async () => {
+    const res = await PatchProject(
+      makeJson(`/api/projects/${projectId}`, "PATCH", { name: "My Project!!" }),
+      routeParams(projectId),
+    );
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toContain("Latin letters");
+  });
+
+  it("rejects a rename containing Cyrillic characters", async () => {
+    const res = await PatchProject(
+      makeJson(`/api/projects/${projectId}`, "PATCH", { name: "Привет" }),
+      routeParams(projectId),
+    );
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toContain("Latin letters");
+  });
+
   it("returns 400 when no updatable fields are provided", async () => {
     const res = await PatchProject(
       makeJson(`/api/projects/${projectId}`, "PATCH", {}),
