@@ -41,13 +41,15 @@ echo "[container] Starting Next.js + Trigger.dev in background..."
 cd "${WORKSPACE_ROOT}"
 
 # Start dev services detached from the terminal so the postStartCommand returns immediately.
-# Output goes to log files so it never blocks on a TTY.
-nohup npx concurrently \
+# Output goes to log files so it never blocks on a TTY. setsid puts the services in a
+# new session so they survive the postStartCommand session teardown (otherwise the
+# backgrounded dev servers are killed with SIGHUP on exit); < /dev/null detaches stdin.
+setsid nohup npx concurrently \
   --names "next,trigger" \
   --prefix-colors "cyan,magenta" \
   "npm run dev > ${LOG_DIR}/next.log 2>&1" \
   "npm run trigger:dev > ${LOG_DIR}/trigger.log 2>&1" \
-  > "${LOG_DIR}/concurrently.log" 2>&1 &
+  > "${LOG_DIR}/concurrently.log" 2>&1 < /dev/null &
 
 DEV_PID=$!
 echo "${DEV_PID}" > "${LOG_DIR}/dev.pid"
