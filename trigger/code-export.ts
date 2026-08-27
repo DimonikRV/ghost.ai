@@ -1,13 +1,15 @@
-import { task } from "@trigger.dev/sdk";
+import { task, logger } from "@trigger.dev/sdk";
 import { generateObject } from "ai";
 import { google } from "@ai-sdk/google";
 import { z } from "zod";
 import JSZip from "jszip";
+import { PrismaPg } from "@prisma/adapter-pg";
 import { getFramework } from "../lib/export/frameworks";
 import {
   buildSystemPrompt,
   buildGraphDescription,
 } from "../lib/export/scaffold-prompt";
+import type { DiagramNode, DiagramEdge } from "../components/editor/starter-templates";
 
 export const codeExport = task({
   id: "code-export",
@@ -20,21 +22,21 @@ export const codeExport = task({
   },
   run: async (
     payload: {
-      canvasJson: { nodes: any[]; edges: any[] };
+      canvasJson: { nodes: DiagramNode[]; edges: DiagramEdge[] };
       framework: string;
       projectId: string;
       userId: string;
     },
     { ctx },
   ) => {
-    const { canvasJson, framework: frameworkId, projectId, userId } = payload;
+    const { canvasJson, framework: frameworkId, projectId } = payload;
 
     const framework = getFramework(frameworkId);
     if (!framework) {
       throw new Error(`Unknown framework: ${frameworkId}`);
     }
 
-    ctx.log.info("Starting code export", {
+    logger.info("Starting code export", {
       framework: frameworkId,
       nodeCount: canvasJson.nodes.length,
       edgeCount: canvasJson.edges.length,
@@ -57,7 +59,7 @@ export const codeExport = task({
       prompt: userPrompt,
     });
 
-    ctx.log.info("AI generation complete", {
+    logger.info("AI generation complete", {
       fileCount: result.files.length,
     });
 
@@ -74,12 +76,15 @@ export const codeExport = task({
       addRandomSuffix: false,
     });
 
-    ctx.log.info("ZIP uploaded to blob storage", { blobUrl: blob.url });
+    logger.info("ZIP uploaded to blob storage", { blobUrl: blob.url });
 
     const { PrismaClient } = await import(
       "../app/generated/prisma/client"
     );
-    const prisma = new PrismaClient();
+    const adapter = new PrismaPg({
+      connectionString: process.env.DATABASE_URL,
+    });
+    const prisma = new PrismaClient({ adapter });
 
     try {
       await prisma.exportRun.updateMany({

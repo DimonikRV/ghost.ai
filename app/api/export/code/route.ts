@@ -5,7 +5,11 @@ import { get } from "@vercel/blob";
 import { codeExport } from "@/trigger/code-export";
 import { getFramework } from "@/lib/export/frameworks";
 import { checkProjectAccess } from "@/lib/project-access";
-import { prisma } from "@/lib/prisma";
+import prisma from "@/lib/prisma";
+import type {
+  DiagramNode,
+  DiagramEdge,
+} from "@/components/editor/starter-templates";
 
 export async function POST(req: Request) {
   const { userId } = await auth();
@@ -56,7 +60,10 @@ export async function POST(req: Request) {
     );
   }
 
-  let canvasJson: { nodes: any[]; edges: any[] };
+  let canvasJson: {
+    nodes: DiagramNode[];
+    edges: DiagramEdge[];
+  };
   try {
     const blobResult = await get(project.canvasJsonPath, { access: "private" });
     if (!blobResult || blobResult.statusCode !== 200) {
