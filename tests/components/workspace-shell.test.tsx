@@ -77,6 +77,12 @@ vi.mock("@/components/editor/ai-sidebar", () => ({
   ),
 }));
 
+vi.mock("@/components/editor/export-dialog", () => ({
+  ExportDialog: (props: any) => (
+    <div data-testid="export-dialog" data-is-open={String(props.isOpen)} />
+  ),
+}));
+
 vi.mock("@/components/editor/presence-avatars", () => ({
   PresenceAvatars: () => <div data-testid="presence-avatars" />,
 }));

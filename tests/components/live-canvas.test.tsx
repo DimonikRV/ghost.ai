@@ -24,6 +24,16 @@ vi.mock("@/components/editor/workspace-shell", () => {
   };
 });
 
+vi.mock("@/components/editor/react-flow-wrapper-ref-context", () => {
+  const React = require("react");
+  return {
+    RegisterWrapperRefContext: React.createContext(null),
+    useRegisterWrapperRef: () => () => {},
+    ExportDialogContext: React.createContext(null),
+    useExportDialog: () => vi.fn(),
+  };
+});
+
 import { LiveCanvas } from "@/components/editor/live-canvas";
 
 describe("LiveCanvas", () => {

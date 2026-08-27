@@ -1,0 +1,15 @@
+model ExportRun {
+  id          String    @id @default(cuid())
+  runId       String    @unique @map("run_id")
+  projectId   String    @map("project_id")
+  userId      String    @map("user_id")
+  framework   String
+  status      String    @default("pending") // pending | generating | completed | failed
+  blobUrl     String?   @map("blob_url")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  completedAt DateTime? @map("completed_at")
+
+  @@index([runId])
+  @@index([userId, projectId])
+  @@map("export_runs")
+}

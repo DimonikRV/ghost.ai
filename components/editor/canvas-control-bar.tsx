@@ -1,6 +1,6 @@
 "use client";
 
-import { ZoomIn, ZoomOut, Maximize2, Undo2, Redo2, LayoutGrid, CircleHelp } from "lucide-react";
+import { ZoomIn, ZoomOut, Maximize2, Undo2, Redo2, LayoutGrid, CircleHelp, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface CanvasControlBarProps {
@@ -12,6 +12,7 @@ interface CanvasControlBarProps {
   canUndo: boolean;
   canRedo: boolean;
   onTemplates: () => void;
+  onExport: () => void;
   onHelp: () => void;
 }
 
@@ -24,6 +25,7 @@ export function CanvasControlBar({
   canUndo,
   canRedo,
   onTemplates,
+  onExport,
   onHelp,
 }: CanvasControlBarProps) {
   return (
@@ -49,6 +51,18 @@ export function CanvasControlBar({
         title="Getting Started"
       >
         <CircleHelp className="h-3.5 w-3.5" />
+      </button>
+
+      {/* Export */}
+      <button
+        type="button"
+        onClick={onExport}
+        className="inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-xs text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+        aria-label="Export"
+        title="Export diagram or code"
+      >
+        <Download className="h-3.5 w-3.5" />
+        Export
       </button>
 
       <div className="h-4 w-px bg-border mx-0.5" />

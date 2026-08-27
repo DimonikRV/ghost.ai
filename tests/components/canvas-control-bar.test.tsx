@@ -15,12 +15,14 @@ describe("CanvasControlBar", () => {
     canUndo: true,
     canRedo: true,
     onTemplates: vi.fn(),
+    onExport: vi.fn(),
     onHelp: vi.fn(),
   };
 
   it("renders control buttons", () => {
     render(<CanvasControlBar {...defaultProps} />);
     expect(screen.getByRole("button", { name: /Templates/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Export/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Zoom in/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Zoom out/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Fit view/ })).toBeInTheDocument();
@@ -67,6 +69,14 @@ describe("CanvasControlBar", () => {
     render(<CanvasControlBar {...defaultProps} onHelp={onHelp} />);
     await user.click(screen.getByRole("button", { name: /Help/ }));
     expect(onHelp).toHaveBeenCalledTimes(1);
+  });
+
+  it("calls onExport when export button is clicked", async () => {
+    const user = userEvent.setup();
+    const onExport = vi.fn();
+    render(<CanvasControlBar {...defaultProps} onExport={onExport} />);
+    await user.click(screen.getByRole("button", { name: /Export/ }));
+    expect(onExport).toHaveBeenCalledTimes(1);
   });
 
   it("disables undo when canUndo is false", () => {

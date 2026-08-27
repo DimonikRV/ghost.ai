@@ -13,6 +13,7 @@ Each unit maps to a spec file in this directory.
 | 04 | 04-project-dialogs.md | Project Dialogs | ✅ Done | Create/rename/delete dialogs, sidebar actions |
 | 23 | 23-ci-cd-hardening.md | CI/CD Pipeline Hardening | ✅ Done | P0–P2 remediation, one item at a time |
 | 24 | 24-test-coverage.md | Test Coverage Enhancement | 🔄 In Progress | 80% line coverage target, Vitest + Codecov CI |
+| 25 | 25-code-export.md | Code Export | ⬜ Not Started | Diagram formats (Mermaid, PlantUML, PNG, SVG, JSON) + AI-powered code scaffolds (10 frameworks) |
 
 ## How to Add a Unit
 

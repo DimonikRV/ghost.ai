@@ -30,7 +30,16 @@ import prisma from "@/lib/prisma";
 
 const mockedAuth = vi.mocked(auth);
 const mockedCurrentUser = vi.mocked(currentUser);
-const mockedPrisma = vi.mocked(prisma);
+const mockedPrisma = vi.mocked(prisma) as unknown as {
+  project: {
+    findUnique: ReturnType<typeof vi.fn>;
+    findMany: ReturnType<typeof vi.fn>;
+  };
+  projectCollaborator: {
+    findFirst: ReturnType<typeof vi.fn>;
+    findMany: ReturnType<typeof vi.fn>;
+  };
+};
 
 describe("getCurrentIdentity", () => {
   it("returns userId and email when authenticated", async () => {

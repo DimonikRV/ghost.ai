@@ -11,7 +11,7 @@ vi.mock("@clerk/nextjs", () => ({
 
 const mockUseOthers = vi.fn(() => []);
 vi.mock("@liveblocks/react", () => ({
-  useOthers: (...args: any[]) => mockUseOthers(...args),
+  useOthers: (..._args: any) => mockUseOthers(),
 }));
 
 vi.mock("react", async () => {

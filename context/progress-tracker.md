@@ -294,6 +294,7 @@ Update this file after every meaningful implementation change.
 
 ## Next Up
 
+- **25-code-export** — Diagram formats (Mermaid, PlantUML, PNG, SVG, JSON) + AI-powered code scaffolds (10 frameworks)
 - Shape-specific node rendering (spec 12 scope limit — currently all shapes render as bordered rectangles)
 - Remaining feature specs (TBD)
 

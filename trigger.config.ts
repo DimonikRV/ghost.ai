@@ -1,4 +1,5 @@
 import { defineConfig } from "@trigger.dev/sdk";
+import { prismaExtension } from "@trigger.dev/build/extensions/prisma";
 import { config } from "dotenv";
 
 config({ path: [".env.local", ".env"] });
@@ -9,6 +10,9 @@ export default defineConfig({
   maxDuration: 3600,
   runtime: "node-24",
   logLevel: "info",
+  build: {
+    extensions: [prismaExtension({ mode: "modern" })],
+  },
   retries: {
     enabledInDev: false,
     default: {

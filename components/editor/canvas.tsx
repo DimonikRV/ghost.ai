@@ -638,9 +638,13 @@ const LabelEditingContext = createContext<{
 export function Canvas({
   projectId,
   onStatusChange,
+  onExport,
+  registerWrapperRef,
 }: {
   projectId: string;
   onStatusChange?: (status: SaveStatus) => void;
+  onExport?: () => void;
+  registerWrapperRef?: (node: HTMLDivElement | null) => void;
 }) {
   const { screenToFlowPosition, zoomIn, zoomOut, fitView } = useReactFlow();
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
@@ -853,7 +857,16 @@ export function Canvas({
   );
 
   return (
-    <div ref={reactFlowWrapper} className="relative h-full w-full" onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}>
+      <div
+        ref={(node) => {
+          reactFlowWrapper.current = node;
+          registerWrapperRef?.(node);
+        }}
+        className="relative h-full w-full"
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
       <LabelEditingContext.Provider value={{ isEditingLabel, setIsEditingLabel }}>
         <ReactFlow
           nodes={nodes}
@@ -896,6 +909,7 @@ export function Canvas({
         canUndo={canUndo}
         canRedo={canRedo}
         onTemplates={() => setTemplatesOpen(true)}
+        onExport={() => onExport?.()}
         onHelp={() => setHelpOpen(true)}
       />
       <StarterTemplatesModal

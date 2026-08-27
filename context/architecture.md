@@ -11,6 +11,9 @@
 | Route Protection | `proxy.ts` (not `middleware.ts`) | Clerk middleware at project root |
 | Canvas | React Flow (`@xyflow/react`) + Liveblocks (`@liveblocks/react-flow`) | Collaborative canvas with synced nodes/edges |
 | Realtime | Liveblocks (`@liveblocks/client`, `@liveblocks/react`, `@liveblocks/node`) | Presence, cursors, storage sync |
+| AI Generation | `ai` SDK + `@ai-sdk/google` (Gemini 2.5 Flash) | Structured code generation for export scaffolds |
+| Background Jobs | Trigger.dev v4 (`@trigger.dev/sdk`) | Durable task execution for AI code export |
+| Export Storage | Vercel Blob (`@vercel/blob`) | Stores generated ZIP files for download |
 
 ## System Boundaries
 

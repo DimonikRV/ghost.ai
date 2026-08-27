@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useSyncExternalStore } from "react";
+import { useState, useCallback, useRef, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, PanelLeftOpen, PanelLeftClose, Share2, Bot } from "lucide-react";
@@ -8,6 +8,8 @@ import { ProjectSidebar } from "@/components/editor/project-sidebar";
 import { ShareDialog, type Collaborator } from "@/components/editor/share-dialog";
 import { ShapePanel } from "@/components/editor/shape-panel";
 import { AiSidebar } from "@/components/editor/ai-sidebar";
+import { ExportDialog } from "@/components/editor/export-dialog";
+import { RegisterWrapperRefContext, ExportDialogContext } from "@/components/editor/react-flow-wrapper-ref-context";
 import type { ProjectItem } from "@/hooks/use-project-actions";
 import { cn } from "@/lib/utils";
 import { LiveblocksProvider, RoomProvider } from "@liveblocks/react";
@@ -50,6 +52,7 @@ export function WorkspaceShell({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [aiSidebarOpen, setAiSidebarOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [shareCollaborators, setShareCollaborators] = useState<Collaborator[]>(
     collaborators as Collaborator[]
@@ -58,6 +61,13 @@ export function WorkspaceShell({
   const [shareError, setShareError] = useState<string | null>(null);
   const mounted = useMounted();
   const router = useRouter();
+  const reactFlowWrapperRef = useRef<HTMLDivElement>(null);
+  const registerWrapperRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      reactFlowWrapperRef.current = node;
+    },
+    [],
+  );
 
   const refreshCollaborators = useCallback(async () => {
     const res = await fetch(`/api/projects/${project.id}/collaborators`);
@@ -234,9 +244,13 @@ export function WorkspaceShell({
 
         {/* Main content area */}
         <main className="fixed top-12 left-0 right-0 bottom-0 overflow-hidden">
-          <CanvasSaveStatusContext.Provider value={setSaveStatus}>
-            {children}
-          </CanvasSaveStatusContext.Provider>
+          <RegisterWrapperRefContext.Provider value={registerWrapperRef}>
+            <ExportDialogContext.Provider value={() => setExportDialogOpen(true)}>
+              <CanvasSaveStatusContext.Provider value={setSaveStatus}>
+                {children}
+              </CanvasSaveStatusContext.Provider>
+            </ExportDialogContext.Provider>
+          </RegisterWrapperRefContext.Provider>
         </main>
 
         {/* Shape panel */}
@@ -253,6 +267,15 @@ export function WorkspaceShell({
           onRemove={handleRemove}
           isLoading={shareLoading}
           error={shareError}
+        />
+
+        {/* Export dialog */}
+        <ExportDialog
+          isOpen={exportDialogOpen}
+          onClose={() => setExportDialogOpen(false)}
+          projectId={project.id}
+          projectName={project.name}
+          reactFlowWrapperRef={reactFlowWrapperRef}
         />
       </RoomProvider>
     </LiveblocksProvider>
