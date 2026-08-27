@@ -5,7 +5,7 @@ import { get } from "@vercel/blob";
 import { codeExport } from "@/trigger/code-export";
 import { getFramework } from "@/lib/export/frameworks";
 import { checkProjectAccess } from "@/lib/project-access";
-import { prisma } from "@/lib/prisma";
+import prisma from "@/lib/prisma";
 
 export async function POST(req: Request) {
   const { userId } = await auth();
