@@ -50,6 +50,22 @@
 - Use `useCallback` for stable function references passed to child components
 - Use `useRef` + `useEffect` cleanup for timers and subscriptions
 
+## Testing
+
+- **Vitest** for unit/integration/component tests; **Playwright** for E2E.
+- Test files live under `tests/` by layer:
+  - `tests/unit/` — pure function tests (no DB, no HTTP)
+  - `tests/integration/` — API route handlers (real Postgres, mocked auth/blob)
+  - `tests/components/` — React component tests (jsdom via `// @vitest-environment jsdom` directive)
+  - `tests/fixtures/` — shared data factories (`factories.ts`)
+  - `tests/integration/api/` — nested route test suites by feature
+- Unit tests must not hit DB/HTTP; integration tests use real Postgres with mocked Clerk auth and Vercel Blob.
+- Component tests use jsdom and mock external deps (`@liveblocks/react`, `@clerk/nextjs`, etc.) per the patterns in `tests/integration/setup.ts`.
+- Use the shared factories in `tests/fixtures/factories.ts` (`createTestProject`, `createTestCollaborator`, `createTestTaskRun`, `cleanupTestData`) instead of repeating `prisma.*.create()` calls.
+- Server-side mocks live in `tests/integration/setup.ts` (Clerk `auth`/`clerkClient`, `@vercel/blob`, `@trigger.dev/sdk`, `@liveblocks/node`).
+- Coverage target: 80% lines, 70% branches, 65% functions, 80% statements (v8 provider). Run `npm run test:coverage`.
+- Scripts: `npm run test:unit`, `npm run test:integration`, `npm run test:components`, `npm run test:coverage`.
+
 ## File Organization
 
 - `app/` — Next.js routes and layouts

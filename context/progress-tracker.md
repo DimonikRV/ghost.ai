@@ -92,6 +92,19 @@ Update this file after every meaningful implementation change.
   - Docs synced: `.github/instructions/ci-cd.instructions.md` rewritten, devops-docker.instructions.md, AGENTS.md DevOps section, `.agents/skills/ci-cd/SKILL.md`, `.agents/skills/devops/SKILL.md`
   - Spec: `context/feature-specs/23-ci-cd-hardening.md`
 
+- **24-test-coverage** — Test coverage enhancement to 80% (Verification gates all green):
+  - Spec: `context/feature-specs/24-test-coverage.md` → Marked Complete
+  - `vitest.config.ts` — v8 coverage provider with thresholds: lines 80%, branches 70%, functions 65%, statements 80%
+  - `tests/unit/lib/export/` — added `frameworks.test.ts`, `mermaid.test.ts`, `plantuml.test.ts`, `json.test.ts`, `image.test.ts`, `download.test.ts`, `scaffold-prompt.test.ts` → `lib/export/*` now 100% line coverage
+  - `tests/components/export-dialog.test.tsx` — dialog render, all 10 frameworks, selection highlight, generate-disabled, and Mermaid/PlantUML/JSON/PNG/SVG export-path coverage (lifted `components/editor/export-dialog.tsx` from 0%)
+  - `tests/integration/helpers.ts` + `tests/fixtures/factories.ts` — `cleanupTestData()` also cleans `exportRun` + `taskRun`
+  - `context/code-standards.md` — added `## Testing` conventions section (verify item 13)
+  - Final coverage: statements **80.21%**, lines **82.02%**, branches **71.02%**, functions **72.72%** (all thresholds met, exit 0)
+  - Full suite: 462 tests / 55 files pass (unit + components + integration incl. export)
+  - `npm run lint` (0 errors), `npx tsc --noEmit`, and `NODE_ENV=production npm run build` all pass
+  - Note: `next build` fails under a shell-exported `NODE_ENV=development` on `/_global-error` prerender (known Next 16 bug); local verification uses `NODE_ENV=production` (matches CI, which does not override it)
+  - Resolved pre-existing spec-25 blockers encountered while reaching coverage targets: prisma default imports + `logger`/`ctx.run.id` in `trigger/code-export.ts`, `export-dialog.tsx` TDZ/typing fixes, `@ai-sdk/google` pinned `3.0.119` (matches `ai@6.0.257`'s `@ai-sdk/provider@3.0.15`), `export_runs` table applied to shared DB
+
 ## Completed (this session) (older)
 
 - **21-canvas-autosave** — autosave and loading for collaborative canvas via Vercel Blob:
@@ -287,14 +300,11 @@ Update this file after every meaningful implementation change.
 
 ## Current Work
 
-- **24-test-coverage** — Test coverage enhancement:
-  - Spec: `context/feature-specs/24-test-coverage.md`
-  - Goal: 80% line coverage with Vitest + @testing-library/react + Codecov CI
-  - Skills loaded: nextjs, prisma-client-api, clerk, clerk-testing, liveblocks-best-practices, github-actions-generator, github-actions-validator, devops, ci-cd
+- None — 24-test-coverage is Complete. Toolbelt ready for next spec.
 
 ## Next Up
 
-- **25-code-export** — Diagram formats (Mermaid, PlantUML, PNG, SVG, JSON) + AI-powered code scaffolds (10 frameworks)
+- **25-code-export** — Diagram formats (Mermaid, PlantUML, PNG, SVG, JSON) + AI-powered code scaffolds (10 frameworks) — code + `export_runs` table already landed while closing spec 24 blockers; remainder pending
 - Shape-specific node rendering (spec 12 scope limit — currently all shapes render as bordered rectangles)
 - Remaining feature specs (TBD)
 

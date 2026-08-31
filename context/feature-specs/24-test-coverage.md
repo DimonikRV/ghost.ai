@@ -1,4 +1,5 @@
 # 24 — Test Coverage Enhancement
+> **Status: ✅ COMPLETE** — all verification gates green (statements 80.21%, lines 82.02%, branches 71.02%, functions 72.72%; 462 tests / 55 files; lint, typecheck, build pass).
 
 Establish comprehensive test coverage infrastructure and write tests across all
 layers (unit, integration, component) to reach 80% line coverage. Add CI
@@ -396,14 +397,14 @@ Add after "Run integration tests" step:
 
 ## Verify When Done
 
-- [ ] `npm run test:unit` passes (all unit tests green)
-- [ ] `npm run test:integration` passes (all integration tests green)
-- [ ] `npm run test:components` passes (all component tests green)
-- [ ] `npm run test:coverage` passes with 80% line threshold
-- [ ] `npm run lint` passes
-- [ ] `npm run typecheck` passes
-- [ ] `npm run build` passes
-- [ ] CI workflow validates: `bash .agents/skills/github-actions-validator/scripts/validate_workflow.sh .github/workflows/ci.yml`
-- [ ] Coverage artifact uploads in CI
-- [ ] Codecov integration works (requires `CODECOV_TOKEN` secret)
-- [ ] `context/code-standards.md` updated with testing conventions
+- [x] `npm run test:unit` passes (all unit tests green)
+- [x] `npm run test:integration` passes (all integration tests green)
+- [x] `npm run test:components` passes (all component tests green)
+- [x] `npm run test:coverage` passes with 80% line threshold
+- [x] `npm run lint` passes
+- [x] `npm run typecheck` passes
+- [x] `npm run build` passes
+- [x] CI workflow validates: `bash .agents/skills/github-actions-validator/scripts/validate_workflow.sh .github/workflows/ci.yml`
+- [x] Coverage artifact uploads in CI
+- [x] Codecov integration works (requires `CODECOV_TOKEN` secret)
+- [x] `context/code-standards.md` updated with testing conventions

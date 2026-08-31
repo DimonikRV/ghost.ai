@@ -5,11 +5,11 @@ import "@testing-library/jest-dom/vitest";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 
 describe("useKeyboardShortcuts", () => {
-  let onZoomIn = vi.fn<() => void>();
-  let onZoomOut = vi.fn<() => void>();
-  let onFitView = vi.fn<() => void>();
-  let onUndo = vi.fn<() => void>();
-  let onRedo = vi.fn<() => void>();
+  const onZoomIn = vi.fn<() => void>();
+  const onZoomOut = vi.fn<() => void>();
+  const onFitView = vi.fn<() => void>();
+  const onUndo = vi.fn<() => void>();
+  const onRedo = vi.fn<() => void>();
   let result: ReturnType<typeof renderHook>;
 
   beforeEach(() => {

@@ -23,6 +23,7 @@ import { exportToPng, exportToSvg } from "@/lib/export/image";
 import { downloadFile } from "@/lib/export/download";
 import { slugify } from "@/lib/slugify";
 import { FRAMEWORKS, type FrameworkDef } from "@/lib/export/frameworks";
+import type { DiagramNode, DiagramEdge } from "@/components/editor/starter-templates";
 import { cn } from "@/lib/utils";
 
 interface ExportDialogProps {
@@ -34,8 +35,8 @@ interface ExportDialogProps {
 }
 
 interface CanvasState {
-  nodes: any[];
-  edges: any[];
+  nodes: DiagramNode[];
+  edges: DiagramEdge[];
 }
 
 type ExportStatus = "idle" | "fetching" | "generating" | "downloading";
@@ -102,40 +103,6 @@ export function ExportDialog({
     [fetchCanvasState, filename, reactFlowWrapperRef],
   );
 
-  const handleCodeExport = useCallback(async () => {
-    if (!selectedFramework) return;
-    setStatus("generating");
-
-    try {
-      const triggerRes = await fetch("/api/export/code", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ projectId, framework: selectedFramework.id }),
-      });
-
-      if (!triggerRes.ok) {
-        const err = await triggerRes.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to start export");
-      }
-
-      const { runId } = await triggerRes.json();
-      setCurrentRunId(runId);
-
-      const tokenRes = await fetch(
-        `/api/export/code/${runId}/token`,
-        { method: "POST", headers: { "Content-Type": "application/json" } },
-      );
-      if (!tokenRes.ok) throw new Error("Failed to get progress token");
-      const { token } = await tokenRes.json();
-
-      await pollForCompletion(runId, token);
-    } catch (err) {
-      console.error("Code export failed:", err);
-      setStatus("idle");
-      setCurrentRunId(null);
-    }
-  }, [selectedFramework, projectId]);
-
   const pollForCompletion = useCallback(
     async (runId: string, _token: string) => {
       const maxAttempts = 120;
@@ -182,6 +149,40 @@ export function ExportDialog({
     },
     [filename, selectedFramework, onClose],
   );
+
+  const handleCodeExport = useCallback(async () => {
+    if (!selectedFramework) return;
+    setStatus("generating");
+
+    try {
+      const triggerRes = await fetch("/api/export/code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projectId, framework: selectedFramework.id }),
+      });
+
+      if (!triggerRes.ok) {
+        const err = await triggerRes.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to start export");
+      }
+
+      const { runId } = await triggerRes.json();
+      setCurrentRunId(runId);
+
+      const tokenRes = await fetch(
+        `/api/export/code/${runId}/token`,
+        { method: "POST", headers: { "Content-Type": "application/json" } },
+      );
+      if (!tokenRes.ok) throw new Error("Failed to get progress token");
+      const { token } = await tokenRes.json();
+
+      await pollForCompletion(runId, token);
+    } catch (err) {
+      console.error("Code export failed:", err);
+      setStatus("idle");
+      setCurrentRunId(null);
+    }
+  }, [selectedFramework, projectId, pollForCompletion]);
 
   const isBusy = status !== "idle";
 

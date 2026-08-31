@@ -60,8 +60,9 @@ export function buildGraphDescription(canvasJson: {
   for (const node of canvasJson.nodes) {
     const x = Math.round(node.position.x);
     const y = Math.round(node.position.y);
+    const label = node.data.label || node.id;
     lines.push(
-      `- [${node.data.shape}] "${node.data.label}" at (${x}, ${y})`,
+      `- [${node.data.shape}] "${label}" at (${x}, ${y})`,
     );
   }
 

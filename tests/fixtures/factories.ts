@@ -35,6 +35,9 @@ export async function createTestTaskRun(
 }
 
 export async function cleanupTestData(): Promise<void> {
+  await prisma.exportRun.deleteMany({
+    where: { userId: { startsWith: "user_integration_" } },
+  });
   await prisma.projectCollaborator.deleteMany({
     where: { project: { ownerId: { startsWith: "user_integration_" } } },
   });

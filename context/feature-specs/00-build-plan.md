@@ -12,8 +12,8 @@ Each unit maps to a spec file in this directory.
 | 03 | 03-auth.md | Authentication | ✅ Done | Clerk wired, route protection, auth pages |
 | 04 | 04-project-dialogs.md | Project Dialogs | ✅ Done | Create/rename/delete dialogs, sidebar actions |
 | 23 | 23-ci-cd-hardening.md | CI/CD Pipeline Hardening | ✅ Done | P0–P2 remediation, one item at a time |
-| 24 | 24-test-coverage.md | Test Coverage Enhancement | 🔄 In Progress | 80% line coverage target, Vitest + Codecov CI |
-| 25 | 25-code-export.md | Code Export | ⬜ Not Started | Diagram formats (Mermaid, PlantUML, PNG, SVG, JSON) + AI-powered code scaffolds (10 frameworks) |
+| 24 | 24-test-coverage.md | Test Coverage Enhancement | ✅ Done | 80% line coverage target, Vitest + Codecov CI — statements 80.21%, lines 82.02%, branches 71.02%, functions 72.72% |
+| 25 | 25-code-export.md | Code Export | 🔄 In Progress | Diagram formats (Mermaid, PlantUML, PNG, SVG, JSON) + AI-powered code scaffolds (10 frameworks). Code + `export_runs` table landed while closing spec-24 blockers; full spec verification pending |
 
 ## How to Add a Unit
 
