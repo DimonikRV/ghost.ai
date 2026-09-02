@@ -1,5 +1,6 @@
 import { task, logger } from "@trigger.dev/sdk";
 import { generateObject } from "ai";
+import type { LanguageModel } from "ai";
 import { google } from "@ai-sdk/google";
 import { z } from "zod";
 import JSZip from "jszip";
@@ -47,7 +48,7 @@ export const codeExport = task({
     const userPrompt = buildGraphDescription(canvasJson);
 
     const { object: result } = await generateObject({
-      model: google("gemini-2.5-flash") as any,
+      model: google("gemini-2.5-flash") as unknown as LanguageModel,
       schema: z.object({
         files: z.array(
           z.object({
