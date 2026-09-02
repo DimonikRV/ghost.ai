@@ -1,6 +1,15 @@
 "use client";
 
-import { useCallback, useRef, useState, forwardRef, useEffect, createContext, useContext, useMemo } from "react";
+import {
+  useCallback,
+  useRef,
+  useState,
+  forwardRef,
+  useEffect,
+  createContext,
+  useContext,
+  useMemo,
+} from "react";
 import {
   ReactFlow,
   Controls,
@@ -21,16 +30,30 @@ import {
   getSmoothStepPath,
 } from "@xyflow/react";
 import { useLiveblocksFlow, Cursors } from "@liveblocks/react-flow";
-import { useCanUndo, useCanRedo, useUndo, useRedo, useUpdateMyPresence } from "@liveblocks/react";
+import {
+  useCanUndo,
+  useCanRedo,
+  useUndo,
+  useRedo,
+  useUpdateMyPresence,
+} from "@liveblocks/react";
 import { DRAG_DATA_TYPE } from "@/components/editor/shape-panel";
 import { CanvasControlBar } from "@/components/editor/canvas-control-bar";
 import { StarterTemplatesModal } from "@/components/editor/starter-templates-modal";
 import { HelpDialog } from "@/components/editor/help-dialog";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
-import { useCanvasAutosave, type SaveStatus } from "@/hooks/use-canvas-autosave";
+import {
+  useCanvasAutosave,
+  type SaveStatus,
+} from "@/hooks/use-canvas-autosave";
+import { useRegisterApplyDiagram } from "@/components/editor/react-flow-wrapper-ref-context";
 import type { ShapeType } from "@/types/canvas";
 import { NODE_COLOR_PALETTE } from "@/types/canvas";
-import type { CanvasTemplate, DiagramNode, DiagramEdge } from "@/components/editor/starter-templates";
+import type {
+  CanvasTemplate,
+  DiagramNode,
+  DiagramEdge,
+} from "@/components/editor/starter-templates";
 import "@xyflow/react/dist/style.css";
 import "@liveblocks/react-ui/styles.css";
 import "@liveblocks/react-flow/styles.css";
@@ -44,9 +67,7 @@ function generateNodeId(shape: ShapeType): string {
 // ---------------------------------------------------------------------------
 
 function shapeBorderColors(selected: boolean) {
-  return selected
-    ? "var(--color-foreground)"
-    : "var(--color-border)";
+  return selected ? "var(--color-foreground)" : "var(--color-border)";
 }
 
 function CssShape({
@@ -229,10 +250,21 @@ function HandleStyle({
 // ---------------------------------------------------------------------------
 
 function CanvasEdge(props: EdgeProps) {
-  const { id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, style = {}, markerEnd } = props;
+  const {
+    id,
+    sourceX,
+    sourceY,
+    targetX,
+    targetY,
+    sourcePosition,
+    targetPosition,
+    style = {},
+    markerEnd,
+  } = props;
   const [hovered, setHovered] = useState(false);
   const [editing, setEditing] = useState(false);
-  const edgeDataLabel = (props.data as { label?: string } | undefined)?.label ?? "";
+  const edgeDataLabel =
+    (props.data as { label?: string } | undefined)?.label ?? "";
   const [label, setLabel] = useState(edgeDataLabel);
   const [prevEdgeLabel, setPrevEdgeLabel] = useState(edgeDataLabel);
   const { updateEdge } = useReactFlow();
@@ -264,7 +296,7 @@ function CanvasEdge(props: EdgeProps) {
       strokeWidth: 20,
       fill: "none",
     }),
-    []
+    [],
   );
 
   const visiblePathStyle = useMemo(
@@ -277,16 +309,13 @@ function CanvasEdge(props: EdgeProps) {
       opacity,
       transition: "stroke 0.15s, opacity 0.15s",
     }),
-    [style, strokeColor, opacity]
+    [style, strokeColor, opacity],
   );
 
-  const handleDoubleClick = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      setEditing(true);
-    },
-    []
-  );
+  const handleDoubleClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditing(true);
+  }, []);
 
   const handleLabelChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -296,21 +325,18 @@ function CanvasEdge(props: EdgeProps) {
         data: { ...edge.data, label: newLabel },
       }));
     },
-    [id, updateEdge]
+    [id, updateEdge],
   );
 
   const handleLabelBlur = useCallback(() => {
     setEditing(false);
   }, []);
 
-  const handleLabelKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setEditing(false);
-      }
-    },
-    []
-  );
+  const handleLabelKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === "Escape") {
+      setEditing(false);
+    }
+  }, []);
 
   return (
     <>
@@ -353,7 +379,11 @@ function CanvasEdge(props: EdgeProps) {
             <div
               onDoubleClick={handleDoubleClick}
               className="text-xs text-foreground px-1.5 py-0.5 rounded-sm cursor-pointer hover:bg-card/60 whitespace-nowrap"
-              style={{ maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis" }}
+              style={{
+                maxWidth: 160,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
             >
               {label || " "}
             </div>
@@ -374,249 +404,323 @@ const CSS_SHAPES: ShapeType[] = ["rectangle", "pill", "circle"];
 const MIN_WIDTH = 60;
 const MIN_HEIGHT = 40;
 
-const CanvasNode = forwardRef<HTMLDivElement, NodeProps>(function CanvasNode(
-  props,
-  ref
-) {
-  const { id, data, selected, isConnectable } = props;
-  const { updateNode } = useReactFlow();
-  const { setIsEditingLabel } = useContext(LabelEditingContext);
-  const [isHovered, setIsHovered] = useState(false);
-  const nodeData = data as {
-    label: string;
-    color: string;
-    shape: ShapeType;
-    width?: number;
-    height?: number;
-  };
-  const shape = nodeData.shape ?? "rectangle";
-  const borderColor = shapeBorderColors(!!selected);
-
-  // Resolved node color — falls back to default card color if not set
-  const nodeColor = nodeData.color ?? "var(--color-card)";
-
-  // Default dimensions per shape (matches shape-panel defaults)
-  const defaultSize: Record<ShapeType, [number, number]> = {
-    rectangle: [180, 100],
-    diamond: [160, 140],
-    circle: [120, 120],
-    pill: [160, 80],
-    cylinder: [120, 140],
-    hexagon: [140, 120],
-  };
-
-  const width = nodeData.width ?? defaultSize[shape][0];
-  const height = nodeData.height ?? defaultSize[shape][1];
-
-  // Inline label editing state
-  const [isEditing, setIsEditing] = useState(false);
-  const nodeLabel = nodeData.label ?? "";
-  const [editValue, setEditValue] = useState(nodeLabel);
-  const [prevNodeLabel, setPrevNodeLabel] = useState(nodeLabel);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  useEffect(() => {
-    if (isEditing && textareaRef.current) {
-      textareaRef.current.focus();
-    }
-  }, [isEditing]);
-
-  // Sync edit value when node label changes externally
-  if (prevNodeLabel !== nodeLabel) {
-    setPrevNodeLabel(nodeLabel);
-    setEditValue(nodeLabel);
-  }
-
-  // Report editing state to Canvas for pan-on-drag control
-  useEffect(() => {
-    setIsEditingLabel(isEditing);
-    return () => {
-      if (isEditing) setIsEditingLabel(false);
+const CanvasNode = forwardRef<HTMLDivElement, NodeProps>(
+  function CanvasNode(props, ref) {
+    const { id, data, selected, isConnectable } = props;
+    const { updateNode } = useReactFlow();
+    const { setIsEditingLabel } = useContext(LabelEditingContext);
+    const [isHovered, setIsHovered] = useState(false);
+    const nodeData = data as {
+      label: string;
+      color: string;
+      shape: ShapeType;
+      width?: number;
+      height?: number;
     };
-  }, [isEditing, setIsEditingLabel]);
+    const shape = nodeData.shape ?? "rectangle";
+    const borderColor = shapeBorderColors(!!selected);
 
-  const handleDoubleClick = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      setIsEditing(true);
-      setEditValue(nodeData.label ?? "");
-    },
-    [nodeData.label]
-  );
+    // Resolved node color — falls back to default card color if not set
+    const nodeColor = nodeData.color ?? "var(--color-card)";
 
-  const commitLabel = useCallback(() => {
-    setIsEditing(false);
-    updateNode(id, (node) => ({
-      data: { ...node.data, label: editValue },
-    }));
-  }, [id, editValue, updateNode]);
+    // Default dimensions per shape (matches shape-panel defaults)
+    const defaultSize: Record<ShapeType, [number, number]> = {
+      rectangle: [180, 100],
+      diamond: [160, 140],
+      circle: [120, 120],
+      pill: [160, 80],
+      cylinder: [120, 140],
+      hexagon: [140, 120],
+    };
 
-  const handleBlur = useCallback(() => {
-    commitLabel();
-  }, [commitLabel]);
+    const width = nodeData.width ?? defaultSize[shape][0];
+    const height = nodeData.height ?? defaultSize[shape][1];
 
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setEditValue(nodeData.label ?? "");
-        setIsEditing(false);
+    // Inline label editing state
+    const [isEditing, setIsEditing] = useState(false);
+    const nodeLabel = nodeData.label ?? "";
+    const [editValue, setEditValue] = useState(nodeLabel);
+    const [prevNodeLabel, setPrevNodeLabel] = useState(nodeLabel);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+    useEffect(() => {
+      if (isEditing && textareaRef.current) {
+        textareaRef.current.focus();
       }
-    },
-    [nodeData.label]
-  );
+    }, [isEditing]);
 
-  const handleTextareaChange = useCallback(
-    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-      setEditValue(e.target.value);
-      // Update node data as user types for live collaborative sync
+    // Sync edit value when node label changes externally
+    if (prevNodeLabel !== nodeLabel) {
+      setPrevNodeLabel(nodeLabel);
+      setEditValue(nodeLabel);
+    }
+
+    // Report editing state to Canvas for pan-on-drag control
+    useEffect(() => {
+      setIsEditingLabel(isEditing);
+      return () => {
+        if (isEditing) setIsEditingLabel(false);
+      };
+    }, [isEditing, setIsEditingLabel]);
+
+    const handleDoubleClick = useCallback(
+      (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setIsEditing(true);
+        setEditValue(nodeData.label ?? "");
+      },
+      [nodeData.label],
+    );
+
+    const commitLabel = useCallback(() => {
+      setIsEditing(false);
       updateNode(id, (node) => ({
-        data: { ...node.data, label: e.target.value },
+        data: { ...node.data, label: editValue },
       }));
-    },
-    [id, updateNode]
-  );
+    }, [id, editValue, updateNode]);
 
-  const handleColorChange = useCallback(
-    (colorValue: string) => {
-      updateNode(id, (node) => ({
-        data: { ...node.data, color: colorValue },
-      }));
-    },
-    [id, updateNode]
-  );
+    const handleBlur = useCallback(() => {
+      commitLabel();
+    }, [commitLabel]);
 
-  const activePaletteId = NODE_COLOR_PALETTE.find(
-    (p) => p.value === nodeData.color
-  )?.id;
+    const handleKeyDown = useCallback(
+      (e: React.KeyboardEvent) => {
+        if (e.key === "Escape") {
+          setEditValue(nodeData.label ?? "");
+          setIsEditing(false);
+        }
+      },
+      [nodeData.label],
+    );
 
-  return (
-    <div
-      ref={ref}
-      style={{ display: "flex", alignItems: "center", justifyContent: "center", width, height }}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
-      {/* Connection handles — subtle white dots with dark border, hidden by default, fade in on hover */}
-      <HandleStyle isConnectable={isConnectable} isHovered={isHovered} type="target" position={Position.Top} id="t-top" />
-      <HandleStyle isConnectable={isConnectable} isHovered={isHovered} type="source" position={Position.Top} id="s-top" />
-      <HandleStyle isConnectable={isConnectable} isHovered={isHovered} type="target" position={Position.Left} id="t-left" />
-      <HandleStyle isConnectable={isConnectable} isHovered={isHovered} type="source" position={Position.Left} id="s-left" />
-      <HandleStyle isConnectable={isConnectable} isHovered={isHovered} type="target" position={Position.Right} id="t-right" />
-      <HandleStyle isConnectable={isConnectable} isHovered={isHovered} type="source" position={Position.Right} id="s-right" />
-      <HandleStyle isConnectable={isConnectable} isHovered={isHovered} type="target" position={Position.Bottom} id="t-bottom" />
-      <HandleStyle isConnectable={isConnectable} isHovered={isHovered} type="source" position={Position.Bottom} id="s-bottom" />
+    const handleTextareaChange = useCallback(
+      (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        setEditValue(e.target.value);
+        // Update node data as user types for live collaborative sync
+        updateNode(id, (node) => ({
+          data: { ...node.data, label: e.target.value },
+        }));
+      },
+      [id, updateNode],
+    );
 
-      {/* Resize handles — only visible when selected */}
-      <NodeResizer
-        nodeId={id}
-        isVisible={selected && !isEditing}
-        minWidth={MIN_WIDTH}
-        minHeight={MIN_HEIGHT}
-        lineClassName="border-border"
-        handleClassName="h-3 w-3 bg-foreground rounded-sm border-2 border-background"
-        onResize={(_, params) => {
-          updateNode(id, (node) => ({
-            data: {
-              ...node.data,
-              width: Math.max(params.width, MIN_WIDTH),
-              height: Math.max(params.height, MIN_HEIGHT),
-            },
-          }));
-        }}
-      />
+    const handleColorChange = useCallback(
+      (colorValue: string) => {
+        updateNode(id, (node) => ({
+          data: { ...node.data, color: colorValue },
+        }));
+      },
+      [id, updateNode],
+    );
 
-      {/* Color toolbar — only when selected and not editing */}
-      <NodeToolbar
-        isVisible={selected && !isEditing}
-        position={Position.Top}
-        offset={8}
+    const activePaletteId = NODE_COLOR_PALETTE.find(
+      (p) => p.value === nodeData.color,
+    )?.id;
+
+    return (
+      <div
+        ref={ref}
         style={{
-          pointerEvents: "auto",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          width,
+          height,
         }}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
       >
-        <div
-          onPointerDown={(e) => e.stopPropagation()}
-          className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-2 py-1.5 shadow-sm"
+        {/* Connection handles — subtle white dots with dark border, hidden by default, fade in on hover */}
+        <HandleStyle
+          isConnectable={isConnectable}
+          isHovered={isHovered}
+          type="target"
+          position={Position.Top}
+          id="t-top"
+        />
+        <HandleStyle
+          isConnectable={isConnectable}
+          isHovered={isHovered}
+          type="source"
+          position={Position.Top}
+          id="s-top"
+        />
+        <HandleStyle
+          isConnectable={isConnectable}
+          isHovered={isHovered}
+          type="target"
+          position={Position.Left}
+          id="t-left"
+        />
+        <HandleStyle
+          isConnectable={isConnectable}
+          isHovered={isHovered}
+          type="source"
+          position={Position.Left}
+          id="s-left"
+        />
+        <HandleStyle
+          isConnectable={isConnectable}
+          isHovered={isHovered}
+          type="target"
+          position={Position.Right}
+          id="t-right"
+        />
+        <HandleStyle
+          isConnectable={isConnectable}
+          isHovered={isHovered}
+          type="source"
+          position={Position.Right}
+          id="s-right"
+        />
+        <HandleStyle
+          isConnectable={isConnectable}
+          isHovered={isHovered}
+          type="target"
+          position={Position.Bottom}
+          id="t-bottom"
+        />
+        <HandleStyle
+          isConnectable={isConnectable}
+          isHovered={isHovered}
+          type="source"
+          position={Position.Bottom}
+          id="s-bottom"
+        />
+
+        {/* Resize handles — only visible when selected */}
+        <NodeResizer
+          nodeId={id}
+          isVisible={selected && !isEditing}
+          minWidth={MIN_WIDTH}
+          minHeight={MIN_HEIGHT}
+          lineClassName="border-border"
+          handleClassName="h-3 w-3 bg-foreground rounded-sm border-2 border-background"
+          onResize={(_, params) => {
+            updateNode(id, (node) => ({
+              data: {
+                ...node.data,
+                width: Math.max(params.width, MIN_WIDTH),
+                height: Math.max(params.height, MIN_HEIGHT),
+              },
+            }));
+          }}
+        />
+
+        {/* Color toolbar — only when selected and not editing */}
+        <NodeToolbar
+          isVisible={selected && !isEditing}
+          position={Position.Top}
+          offset={8}
+          style={{
+            pointerEvents: "auto",
+          }}
         >
-          {NODE_COLOR_PALETTE.map((swatch) => {
-            const isActive = activePaletteId === swatch.id;
-            return (
-              <button
-                key={swatch.id}
-                type="button"
-                title={swatch.id}
-                onClick={() => handleColorChange(swatch.value)}
-                className="relative h-5 w-5 rounded-sm border transition-all duration-150"
-                style={{
-                  background: swatch.value,
-                  borderColor: isActive ? "var(--color-foreground)" : "var(--color-border)",
-                  boxShadow: isActive
-                    ? "0 0 0 1.5px var(--color-foreground)"
-                    : "none",
-                }}
-              />
-            );
-          })}
-        </div>
-      </NodeToolbar>
+          <div
+            onPointerDown={(e) => e.stopPropagation()}
+            className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-2 py-1.5 shadow-sm"
+          >
+            {NODE_COLOR_PALETTE.map((swatch) => {
+              const isActive = activePaletteId === swatch.id;
+              return (
+                <button
+                  key={swatch.id}
+                  type="button"
+                  title={swatch.id}
+                  onClick={() => handleColorChange(swatch.value)}
+                  className="relative h-5 w-5 rounded-sm border transition-all duration-150"
+                  style={{
+                    background: swatch.value,
+                    borderColor: isActive
+                      ? "var(--color-foreground)"
+                      : "var(--color-border)",
+                    boxShadow: isActive
+                      ? "0 0 0 1.5px var(--color-foreground)"
+                      : "none",
+                  }}
+                />
+              );
+            })}
+          </div>
+        </NodeToolbar>
 
-      {/* Node shape */}
-      <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        {CSS_SHAPES.includes(shape) ? (
-          <CssShape shape={shape} width={width} height={height} borderColor={borderColor} backgroundColor={nodeColor} />
-        ) : (
-          <SvgShape shape={shape} width={width} height={height} borderColor={borderColor} backgroundColor={nodeColor} />
-        )}
-
-        {/* Label / editing overlay — centered over the shape */}
+        {/* Node shape */}
         <div
           style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
+            position: "relative",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            padding: "8px",
-            cursor: isEditing ? "text" : "default",
           }}
-          onDoubleClick={handleDoubleClick}
         >
-          {isEditing ? (
-            <textarea
-              ref={textareaRef}
-              value={editValue}
-              onChange={handleTextareaChange}
-              onBlur={handleBlur}
-              onKeyDown={handleKeyDown}
-              onMouseDown={(e) => e.stopPropagation()}
-              onClick={(e) => e.stopPropagation()}
-              placeholder="Type a label..."
-              className="absolute inset-0 w-full h-full resize-none bg-transparent text-foreground text-sm text-center outline-none border-none p-2"
-              style={{
-                fontFamily: "inherit",
-                lineHeight: "1.4",
-                overflow: "hidden",
-              }}
+          {CSS_SHAPES.includes(shape) ? (
+            <CssShape
+              shape={shape}
+              width={width}
+              height={height}
+              borderColor={borderColor}
+              backgroundColor={nodeColor}
             />
           ) : (
-            <span
-              className="text-sm text-center pointer-events-none max-w-full overflow-hidden text-ellipsis whitespace-nowrap"
-              style={{
-                lineHeight: "1.4",
-                color: "var(--color-foreground)",
-              }}
-            >
-              {nodeData.label || "Double-click to edit"}
-            </span>
+            <SvgShape
+              shape={shape}
+              width={width}
+              height={height}
+              borderColor={borderColor}
+              backgroundColor={nodeColor}
+            />
           )}
+
+          {/* Label / editing overlay — centered over the shape */}
+          <div
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "8px",
+              cursor: isEditing ? "text" : "default",
+            }}
+            onDoubleClick={handleDoubleClick}
+          >
+            {isEditing ? (
+              <textarea
+                ref={textareaRef}
+                value={editValue}
+                onChange={handleTextareaChange}
+                onBlur={handleBlur}
+                onKeyDown={handleKeyDown}
+                onMouseDown={(e) => e.stopPropagation()}
+                onClick={(e) => e.stopPropagation()}
+                placeholder="Type a label..."
+                className="absolute inset-0 w-full h-full resize-none bg-transparent text-foreground text-sm text-center outline-none border-none p-2"
+                style={{
+                  fontFamily: "inherit",
+                  lineHeight: "1.4",
+                  overflow: "hidden",
+                }}
+              />
+            ) : (
+              <span
+                className="text-sm text-center pointer-events-none max-w-full overflow-hidden text-ellipsis whitespace-nowrap"
+                style={{
+                  lineHeight: "1.4",
+                  color: "var(--color-foreground)",
+                }}
+              >
+                {nodeData.label || "Double-click to edit"}
+              </span>
+            )}
+          </div>
         </div>
       </div>
-    </div>
-  );
-});
+    );
+  },
+);
 
 const nodeTypes = {
   canvasNode: CanvasNode,
@@ -663,7 +767,7 @@ export function Canvas({
       });
       updateMyPresence({ cursor: position });
     },
-    [screenToFlowPosition, updateMyPresence]
+    [screenToFlowPosition, updateMyPresence],
   );
 
   const handleMouseLeave = useCallback(() => {
@@ -687,6 +791,17 @@ export function Canvas({
       },
     });
 
+  const nodesRef = useRef(nodes);
+  const edgesRef = useRef(edges);
+
+  useEffect(() => {
+    nodesRef.current = nodes;
+  }, [nodes]);
+
+  useEffect(() => {
+    edgesRef.current = edges;
+  }, [edges]);
+
   // Gate autosave until initial hydration completes
   const [autosaveEnabled, setAutosaveEnabled] = useState(false);
 
@@ -695,7 +810,7 @@ export function Canvas({
     projectId,
     nodes as unknown[],
     edges as unknown[],
-    autosaveEnabled
+    autosaveEnabled,
   );
 
   // Report save status to parent
@@ -732,12 +847,18 @@ export function Canvas({
           if (currentNodes.length === 0) {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (onNodesChange as (changes: any[]) => void)(
-              data.nodes.map((item: unknown) => ({ type: "add" as const, item }))
+              data.nodes.map((item: unknown) => ({
+                type: "add" as const,
+                item,
+              })),
             );
             if (Array.isArray(data.edges) && data.edges.length > 0) {
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               (onEdgesChange as (changes: any[]) => void)(
-                data.edges.map((item: unknown) => ({ type: "add" as const, item }))
+                data.edges.map((item: unknown) => ({
+                  type: "add" as const,
+                  item,
+                })),
               );
             }
           }
@@ -818,21 +939,24 @@ export function Canvas({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (onNodesChange as (changes: any[]) => void)([addChange]);
     },
-    [screenToFlowPosition, onNodesChange]
+    [screenToFlowPosition, onNodesChange],
   );
 
-  // Import a starter template — replaces the current canvas with template nodes/edges at (0,0)
+  // Replace the current canvas with the given nodes/edges.
   // Uses onNodesChange/onEdgesChange with add/remove actions so Liveblocks Storage syncs properly
-  const handleImportTemplate = useCallback(
-    (template: CanvasTemplate) => {
-      const templateNodes: Node[] = template.nodes.map((tn: DiagramNode) => ({
+  const handleApplyDiagram = useCallback(
+    (diagramNodes: DiagramNode[], diagramEdges: DiagramEdge[]) => {
+      hasLoadedRef.current = true;
+      setAutosaveEnabled(true);
+
+      const templateNodes: Node[] = diagramNodes.map((tn: DiagramNode) => ({
         id: tn.id,
         type: tn.type,
         position: tn.position,
         data: tn.data,
       }));
 
-      const templateEdges = template.edges.map((te: DiagramEdge) => ({
+      const templateEdges = diagramEdges.map((te: DiagramEdge) => ({
         id: te.id,
         source: te.source,
         target: te.target,
@@ -840,34 +964,72 @@ export function Canvas({
         data: te.data,
       }));
 
+      const currentNodes = nodesRef.current as Node[];
+      const currentEdges = edgesRef.current as Array<{ id: string }>;
+
       // Build remove actions for existing nodes and edges
-      const removeNodeChanges = (nodes as Node[]).map((n) => ({ type: "remove" as const, id: n.id }));
-      const removeEdgeChanges = (edges as unknown as { id: string }[]).map((e) => ({ type: "remove" as const, id: e.id }));
+      const removeNodeChanges = currentNodes.map((n) => ({
+        type: "remove" as const,
+        id: n.id,
+      }));
+      const removeEdgeChanges = currentEdges.map((e) => ({
+        type: "remove" as const,
+        id: e.id,
+      }));
 
       // Build add actions for template nodes and edges
-      const addNodeChanges = templateNodes.map((n) => ({ type: "add" as const, item: n }));
-      const addEdgeChanges = templateEdges.map((e) => ({ type: "add" as const, item: e }));
+      const addNodeChanges = templateNodes.map((n) => ({
+        type: "add" as const,
+        item: n,
+      }));
+      const addEdgeChanges = templateEdges.map((e) => ({
+        type: "add" as const,
+        item: e,
+      }));
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (onNodesChange as (changes: any[]) => void)([...removeNodeChanges, ...addNodeChanges]);
+      (onNodesChange as (changes: any[]) => void)([
+        ...removeNodeChanges,
+        ...addNodeChanges,
+      ]);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (onEdgesChange as (changes: any[]) => void)([...removeEdgeChanges, ...addEdgeChanges]);
+      (onEdgesChange as (changes: any[]) => void)([
+        ...removeEdgeChanges,
+        ...addEdgeChanges,
+      ]);
     },
-    [nodes, edges, onNodesChange, onEdgesChange]
+    [onNodesChange, onEdgesChange],
   );
 
+  // Import a starter template — replaces the current canvas with template nodes/edges
+  const handleImportTemplate = useCallback(
+    (template: CanvasTemplate) => {
+      handleApplyDiagram(template.nodes, template.edges);
+    },
+    [handleApplyDiagram],
+  );
+
+  // Register the apply handler for the AI sidebar to push generated diagrams into the canvas
+  const registerApplyDiagram = useRegisterApplyDiagram();
+  useEffect(() => {
+    registerApplyDiagram(handleApplyDiagram);
+    return () => registerApplyDiagram(null);
+  }, [registerApplyDiagram, handleApplyDiagram]);
+
   return (
-      <div
-        ref={(node) => {
-          reactFlowWrapper.current = node;
-          registerWrapperRef?.(node);
-        }}
-        className="relative h-full w-full"
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
+    <div
+      ref={(node) => {
+        reactFlowWrapper.current = node;
+        registerWrapperRef?.(node);
+      }}
+      className="relative h-full w-full"
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      <LabelEditingContext.Provider
+        value={{ isEditingLabel, setIsEditingLabel }}
       >
-      <LabelEditingContext.Provider value={{ isEditingLabel, setIsEditingLabel }}>
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -890,7 +1052,11 @@ export function Canvas({
               color: "var(--color-foreground)",
             },
           }}
-          connectionLineStyle={{ stroke: "var(--color-foreground)", strokeWidth: 2, opacity: 0.6 }}
+          connectionLineStyle={{
+            stroke: "var(--color-foreground)",
+            strokeWidth: 2,
+            opacity: 0.6,
+          }}
           panOnDrag={!isEditingLabel}
           proOptions={{ hideAttribution: true }}
         >

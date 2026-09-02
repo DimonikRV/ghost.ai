@@ -105,6 +105,32 @@ Update this file after every meaningful implementation change.
   - Note: `next build` fails under a shell-exported `NODE_ENV=development` on `/_global-error` prerender (known Next 16 bug); local verification uses `NODE_ENV=production` (matches CI, which does not override it)
   - Resolved pre-existing spec-25 blockers encountered while reaching coverage targets: prisma default imports + `logger`/`ctx.run.id` in `trigger/code-export.ts`, `export-dialog.tsx` TDZ/typing fixes, `@ai-sdk/google` pinned `3.0.119` (matches `ai@6.0.257`'s `@ai-sdk/provider@3.0.15`), `export_runs` table applied to shared DB
 
+- **19-presence-avatars-cursor** — live room participant avatars + cursors in the editor canvas view (was implemented in code but never formally tracked):
+  - Spec: `context/feature-specs/19-presence-avatars-cursor.md` → Marked Complete (reconciled)
+  - `components/editor/presence-avatars.tsx` — `PresenceAvatars` client component: `useOthers()` + Clerk `useUser()`, filters/deduplicates by `other.info?.userId !== user?.id`, up to 5 overlapping avatars (`-space-x-2.5`, `h-8 w-8`, `ring-2 ring-background`) with initials fallback, `+N` overflow chip, divider (`h-5 w-px bg-border`) only when collaborators exist, and separate Clerk `UserButton` at the same size; display-only (not interactive)
+  - `components/editor/workspace-shell.tsx` — renders `<PresenceAvatars />` in the workspace navbar (canvas room view only), lifts Liveblocks providers so it can use `useOthers()`
+  - `components/editor/canvas.tsx` — `<Cursors />` from `@liveblocks/react-flow` for other participants only; broadcasts cursor via `useUpdateMyPresence` on `onMouseMove` (`screenToFlowPosition`), clears to `null` on mouse leave
+  - `liveblocks.config.ts` — Presence `{ cursor: { x, y } | null, thinking: boolean }`; UserMeta `cursorColor` + `name`/`color` per spec
+  - Spec checklist verified against code (cursors, filtering, current-user exclusion, 5-avatar stack, +N chip, divider, UserButton separation)
+
+- **22-design-agent-api** — Design Agent Trigger.dev backend wiring (was implemented in code but never formally tracked):
+  - Spec: `context/feature-specs/22-design-agent-api.md` → Marked Complete (reconciled)
+  - `prisma/models/task-run.prisma` — `TaskRun` model (cuid id, unique indexed `runId`, `task`, `projectId`, `userId`, `createdAt`; compound `[userId, projectId]` index)
+  - `trigger/design-agent.ts` — `designAgent` task (`@trigger.dev/sdk` `schemaTask()`), id `design-agent`, payload `{ prompt, roomId }`, retry 3/2/1000/10000. AI generation implemented now: `generateObject()` with `google("gemini-2.5-flash")` + Zod schema (nodes `canvasNode` with label/color/shape/position + edges `canvasEdge` with optional label), anchored to `DiagramNode`/`DiagramEdge` shape, drops dangling edges, returns `{ status: "completed", nodes, edges }`
+  - `app/api/ai/design/route.ts` — POST `{ prompt, roomId }`, validates prompt (required, non-empty, ≤4000 chars, 400), `checkProjectAccess` (403), triggers via `tasks.trigger`, creates `TaskRun` on success, 502 on trigger failure (no record), 401 unauthenticated
+  - `app/api/ai/design/token/route.ts` — POST `{ runId }`, looks up `TaskRun` (404), verifies `taskRun.userId === userId` (403), returns run-scoped `auth.createPublicToken`, 401 unauthenticated
+
+- **25-code-export** — Diagram formats (Mermaid, PlantUML, PNG, SVG, JSON) + AI code scaffolds (10 frameworks)(was implemented in code but never formally tracked):
+  - Spec: `context/feature-specs/25-code-export.md` → Marked Complete (reconciled)
+  - `lib/export/` — `download.ts` (`downloadFile`), `mermaid.ts` (`graphToMermaid`, 6-shape mapping + edges), `plantuml.ts` (`graphToPlantUml`), `image.ts` (`exportToPng`/`exportToSvg` via `html-to-image`), `json.ts`, `frameworks.ts` (10 `FRAMEWORKS` + `getFramework`), `scaffold-prompt.ts` (`buildSystemPrompt` + `buildGraphDescription`)
+  - `prisma/models/export-run.prisma` — `ExportRun` model (runId unique, projectId, userId, framework, status, blobUrl, timestamps) + `export_runs` migration
+  - `trigger/code-export.ts` — `codeExport` task: framework lookup, `generateObject()` with `google("gemini-2.5-flash")` + Zod `{ files: [{ path, content }] }`, JSZip ZIP, upload to Vercel Blob, marks `ExportRun` completed/failed
+  - `app/api/export/code/route.ts` — POST: 401/400/403/404 (no saved canvas)/502 flow, triggers task, creates `ExportRun`
+  - `app/api/export/code/[runId]/token/route.ts` — POST run-scoped public token with ownership check
+  - `app/api/export/code/[runId]/download/route.ts` — GET streams ZIP from Blob with ownership + status checks
+  - `components/editor/export-dialog.tsx` + `canvas-control-bar.tsx` (Export button, `Download` icon) + `react-flow-wrapper-ref-context.tsx` + `workspace-shell.tsx` wiring — export dialog with diagram format buttons + framework grid + progress
+  - Tests: `tests/unit/lib/export/{mermaid,plantuml,frameworks,json,image,download,scaffold-prompt}.test.ts`, `tests/components/export-dialog.test.tsx`, `tests/integration/api/export/{code,download}.test.ts` (landed with spec-24 coverage work)
+
 ## Completed (this session) (older)
 
 - **21-canvas-autosave** — autosave and loading for collaborative canvas via Vercel Blob:
@@ -300,13 +326,12 @@ Update this file after every meaningful implementation change.
 
 ## Current Work
 
-- None — 24-test-coverage is Complete. Toolbelt ready for next spec.
+- AI Architect tab client wiring complete: `AiSidebar.handleSend` posts to `/api/ai/design`, polls the new `/api/ai/design/[runId]/result` route (server-side `runs.retrieve`, 409 while processing / 200 with `{nodes,edges}` / 500 on failure), then applies the diagram to the canvas via an `ApplyDiagramContext` registered by `Canvas` (extracted reusable apply logic from `handleImportTemplate`). `WorkspaceShell` provides both `RegisterApplyDiagramContext`/`ApplyDiagramContext` and passes `projectId` to `AiSidebar` (`roomId`). No-projectId path replies with a placeholder assistant message (keeps existing component tests green).
+- Dependency alignment: `@ai-sdk/google` pinned `4.0.51 → 3.0.119` (was `^4.0.51`), restoring `@ai-sdk/provider@3.0.15` / `provider-utils@4.0.50`; full `tsc --noEmit` now 0 errors (was 1 pre-existing error in `trigger/code-export.ts:50`). `package.json` + `package-lock.json` in sync; Trigger.dev dev worker rebuilt + re-indexed.
 
 ## Next Up
 
-- **25-code-export** — Diagram formats (Mermaid, PlantUML, PNG, SVG, JSON) + AI-powered code scaffolds (10 frameworks) — code + `export_runs` table already landed while closing spec 24 blockers; remainder pending
-- Shape-specific node rendering (spec 12 scope limit — currently all shapes render as bordered rectangles)
-- Remaining feature specs (TBD)
+- Remaining feature specs (TBD) — see `context/feature-specs/` for the next `NN-*.md` spec
 
 ## Open Questions
 
@@ -327,6 +352,18 @@ Update this file after every meaningful implementation change.
 
 ## Session Notes
 
+- 2026-09-01: **AI Architect tab client wiring**:
+  - Added `ApplyDiagramContext` + `RegisterApplyDiagramContext` (+ `useApplyDiagram`/`useRegisterApplyDiagram` hooks) to `components/editor/react-flow-wrapper-ref-context.tsx`, mirroring the existing `RegisterWrapperRefContext`/`ExportDialogContext` pattern.
+  - `Canvas` now extracts reusable apply logic from `handleImportTemplate` into `handleApplyDiagram` and registers it via `useRegisterApplyDiagram` (removes+adds on change events so Liveblocks Storage syncs).
+  - New `GET /api/ai/design/[runId]/result` route: Clerk auth (401) → `TaskRun` lookup (404) → ownership check (403) → `runs.retrieve(runId)`; completed → 200 `{status:"completed", nodes, edges}`; still running → 409; failed/cancelled → 500. Server-side `runs.retrieve` uses `getEnvVar` (reads `TRIGGER_SECRET_KEY` from `.env.local`) — no client baseURL config needed.
+  - `AiSidebar` wired: optional `projectId` prop; `handleSend` POSTs `{prompt, roomId: projectId}` to `/api/ai/design`, then `pollForResult` (1.5s interval, 120s timeout) on the result route, applies diagram via `useApplyDiagram`, renders loading bubble (`Loader2`) while generating, assistant summary/error bubbles after; concurrency gating only when `projectId` present (keeps no-projectId test path synchronous). `handleStarterClick` now routes through `handleSend(prompt)`.
+  - `WorkspaceShell` provides `RegisterApplyDiagramContext` (around `<main>`/canvas children) + `ApplyDiagramContext` (around `<AiSidebar>`) and passes `projectId={project.id}`.
+  - Tests: `tests/components/ai-sidebar.test.tsx` extended (loading indicator, applyDiagram called with nodes/edges, error bubble; 24 total passing); new `tests/integration/ai-design-result.test.ts` (401/404/403/200/409/500; 6 passing).
+  - Verified: full `tsc --noEmit` 0 errors, ESLint clean, component suite 237 passing, ai/design integration suite 36 passing (ai-design + token + result + sidebar).
+- 2026-09-01: **design-agent AI generation + dependency reconciliation**:
+  - Implemented real AI generation in `trigger/design-agent.ts` (was placeholder): `schemaTask` payload `{ prompt, roomId }`, `generateObject()` with `google("gemini-2.5-flash")` + Zod `diagramSchema` (nodes `canvasNode` {label, color, shape, position, optional width/height}, edges `canvasEdge` with optional label), anchored to existing `DiagramNode`/`DiagramEdge` types; system prompt maps the 6 `ShapeType`s + `NODE_COLOR_PALETTE` tokens to semantic roles; drops dangling edges; returns `{ status, nodes, edges }`; enableConsoleLogging via `logger.info`
+  - Fixed pre-existing typecheck error: `@ai-sdk/google` was `^4.0.51` (needs `@ai-sdk/provider@4.x`, model spec v4) incompatible with `ai@6.0.266` (`@ai-sdk/provider@3.0.15`, spec v2/v3) → `code-export.ts:50` TS2322. Pinned `@ai-sdk/google@3.0.119` exact; restored `@ai-sdk/provider@3.0.15` + `@ai-sdk/provider-utils@4.0.50`; `package-lock.json` regenerated clean; full `tsc --noEmit` now 0 errors (was 1 pre-existing)
+  - Verified: `npx tsc --noEmit -p tsconfig.json` 0 errors, `npx eslint trigger/design-agent.ts` clean, Trigger.dev dev worker rebuilt + indexed `20260901.7`
 - 2026-06-22: **11-base-canvas** + **12-shape-panel** complete:
   - Spec 11 was a prerequisite (not yet implemented) — implemented first
   - `types/canvas.ts` created for shared canvas types

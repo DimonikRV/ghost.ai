@@ -25,7 +25,11 @@ let nodeEdges: unknown[] = [];
 vi.mock("@xyflow/react", () => {
   const React = require("react");
   const RF = React.forwardRef(function ReactFlowMock(props: any, ref: any) {
-    return <div data-testid="react-flow" ref={ref}>{props.children}</div>;
+    return (
+      <div data-testid="react-flow" ref={ref}>
+        {props.children}
+      </div>
+    );
   });
   RF.displayName = "ReactFlow";
   return {
@@ -35,11 +39,21 @@ vi.mock("@xyflow/react", () => {
     Background: () => <div data-testid="background" />,
     BackgroundVariant: { Dots: "dots" },
     Handle: ({ type, position, id, isConnectable, style }: any) => (
-      <div data-testid={`handle-${type}-${position}-${id}`} data-connectable={String(isConnectable)} style={style} />
+      <div
+        data-testid={`handle-${type}-${position}-${id}`}
+        data-connectable={String(isConnectable)}
+        style={style}
+      />
     ),
     Position: { Top: "top", Bottom: "bottom", Left: "left", Right: "right" },
     ConnectionMode: { Loose: "loose" },
-    NodeResizer: ({ nodeId, isVisible, minWidth, minHeight, onResize }: any) => (
+    NodeResizer: ({
+      nodeId,
+      isVisible,
+      minWidth,
+      minHeight,
+      onResize,
+    }: any) => (
       <div
         data-testid="node-resizer"
         data-node-id={nodeId}
@@ -50,10 +64,14 @@ vi.mock("@xyflow/react", () => {
       />
     ),
     NodeToolbar: ({ isVisible, children, ...rest }: any) => (
-      <div data-testid="node-toolbar" data-is-visible={String(isVisible)}>{children}</div>
+      <div data-testid="node-toolbar" data-is-visible={String(isVisible)}>
+        {children}
+      </div>
     ),
     BaseEdge: () => <div data-testid="base-edge" />,
-    EdgeLabelRenderer: ({ children }: any) => <div data-testid="edge-label">{children}</div>,
+    EdgeLabelRenderer: ({ children }: any) => (
+      <div data-testid="edge-label">{children}</div>
+    ),
     getSmoothStepPath: () => ["M0,0 L100,100", 50, 50],
     MarkerType: { ArrowClosed: "arrowclosed" },
     ReactFlowProvider: ({ children }: any) => <div>{children}</div>,
@@ -73,7 +91,9 @@ vi.mock("@xyflow/react", () => {
     }),
     applyNodeChanges: vi.fn().mockImplementation((_: any, nodes: any) => nodes),
     applyEdgeChanges: vi.fn().mockImplementation((_: any, edges: any) => edges),
-    addEdge: vi.fn().mockImplementation((edge: any, edges: any) => [...edges, edge]),
+    addEdge: vi
+      .fn()
+      .mockImplementation((edge: any, edges: any) => [...edges, edge]),
   };
 });
 
@@ -109,8 +129,18 @@ vi.mock("@/components/editor/canvas-control-bar", () => ({
 vi.mock("@/components/editor/starter-templates-modal", () => ({
   StarterTemplatesModal: (props: any) => (
     <div data-testid="templates-modal" data-open={String(props.open)}>
-      <button data-testid="templates-close" onClick={() => props.onOpenChange(false)}>close</button>
-      <button data-testid="templates-import" onClick={() => props.onImport({ nodes: [], edges: [] })}>import</button>
+      <button
+        data-testid="templates-close"
+        onClick={() => props.onOpenChange(false)}
+      >
+        close
+      </button>
+      <button
+        data-testid="templates-import"
+        onClick={() => props.onImport({ nodes: [], edges: [] })}
+      >
+        import
+      </button>
     </div>
   ),
 }));
@@ -118,7 +148,12 @@ vi.mock("@/components/editor/starter-templates-modal", () => ({
 vi.mock("@/components/editor/help-dialog", () => ({
   HelpDialog: (props: any) => (
     <div data-testid="help-dialog" data-open={String(props.open)}>
-      <button data-testid="help-close" onClick={() => props.onOpenChange(false)}>close</button>
+      <button
+        data-testid="help-close"
+        onClick={() => props.onOpenChange(false)}
+      >
+        close
+      </button>
     </div>
   ),
 }));
@@ -132,6 +167,7 @@ vi.mock("@/hooks/use-canvas-autosave", () => ({
 }));
 
 import { Canvas } from "@/components/editor/canvas";
+import { RegisterApplyDiagramContext } from "@/components/editor/react-flow-wrapper-ref-context";
 
 describe("Canvas", () => {
   beforeEach(() => {
@@ -190,7 +226,11 @@ describe("Canvas", () => {
   it("handles onDrop with valid shape data", () => {
     const { container } = render(<Canvas projectId="proj_1" />);
     const wrapper = container.firstElementChild as HTMLElement;
-    const payload = JSON.stringify({ type: "rectangle", width: 180, height: 100 });
+    const payload = JSON.stringify({
+      type: "rectangle",
+      width: 180,
+      height: 100,
+    });
     const event = new Event("drop", { bubbles: true, cancelable: true });
     Object.defineProperty(event, "preventDefault", { value: vi.fn() });
     Object.defineProperty(event, "dataTransfer", {
@@ -236,8 +276,17 @@ describe("Canvas", () => {
   });
 
   it("loads saved nodes from API and applies them", async () => {
-    const savedNodes = [{ id: "n1", type: "canvasNode", position: { x: 0, y: 0 }, data: { label: "Saved" } }];
-    const savedEdges = [{ id: "e1", source: "n1", target: "n1", type: "canvasEdge", data: {} }];
+    const savedNodes = [
+      {
+        id: "n1",
+        type: "canvasNode",
+        position: { x: 0, y: 0 },
+        data: { label: "Saved" },
+      },
+    ];
+    const savedEdges = [
+      { id: "e1", source: "n1", target: "n1", type: "canvasEdge", data: {} },
+    ];
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({ nodes: savedNodes, edges: savedEdges }),
@@ -245,11 +294,59 @@ describe("Canvas", () => {
 
     render(<Canvas projectId="proj_load" />);
     await vi.waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith("/api/projects/proj_load/canvas");
+      expect(global.fetch).toHaveBeenCalledWith(
+        "/api/projects/proj_load/canvas",
+      );
     });
     await vi.waitFor(() => {
       expect(mockOnNodesChange).toHaveBeenCalled();
     });
+  });
+
+  it("does not merge saved canvas data after applying a diagram during hydration", async () => {
+    let resolveFetch: ((response: Response) => void) | undefined;
+    let registeredApply: ((nodes: unknown[], edges: unknown[]) => void) | null =
+      null;
+    const savedNodes = [{ id: "saved", type: "canvasNode" }];
+    const savedEdges = [{ id: "saved-edge", source: "saved", target: "saved" }];
+
+    global.fetch = vi.fn().mockReturnValue(
+      new Promise<Response>((resolve) => {
+        resolveFetch = resolve;
+      }),
+    );
+
+    render(
+      <RegisterApplyDiagramContext.Provider
+        value={(fn) => {
+          registeredApply = fn as
+            | ((nodes: unknown[], edges: unknown[]) => void)
+            | null;
+        }}
+      >
+        <Canvas projectId="proj_race" />
+      </RegisterApplyDiagramContext.Provider>,
+    );
+
+    await vi.waitFor(() => expect(registeredApply).not.toBeNull());
+    const applyDiagram = registeredApply as unknown as (
+      nodes: unknown[],
+      edges: unknown[],
+    ) => void;
+    applyDiagram(
+      [{ id: "generated", type: "canvasNode" }],
+      [{ id: "generated-edge", source: "generated", target: "generated" }],
+    );
+
+    resolveFetch?.({
+      ok: true,
+      json: async () => ({ nodes: savedNodes, edges: savedEdges }),
+    } as Response);
+
+    await vi.waitFor(() => expect(resolveFetch).toBeDefined());
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(mockOnNodesChange).toHaveBeenCalledTimes(1);
+    expect(mockOnEdgesChange).toHaveBeenCalledTimes(1);
   });
 
   it("does not load when room already has nodes", async () => {
@@ -313,8 +410,12 @@ describe("Canvas", () => {
   it("loads edges when saved data has edges but current room is empty", async () => {
     nodeNodes = [];
     nodeEdges = [];
-    const savedNodes = [{ id: "n1", type: "canvasNode", position: { x: 0, y: 0 }, data: {} }];
-    const savedEdges = [{ id: "e1", source: "n1", target: "n1", type: "canvasEdge", data: {} }];
+    const savedNodes = [
+      { id: "n1", type: "canvasNode", position: { x: 0, y: 0 }, data: {} },
+    ];
+    const savedEdges = [
+      { id: "e1", source: "n1", target: "n1", type: "canvasEdge", data: {} },
+    ];
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({ nodes: savedNodes, edges: savedEdges }),
@@ -329,7 +430,9 @@ describe("Canvas", () => {
   it("does not load edges when saved data has no edges", async () => {
     nodeNodes = [];
     nodeEdges = [];
-    const savedNodes = [{ id: "n1", type: "canvasNode", position: { x: 0, y: 0 }, data: {} }];
+    const savedNodes = [
+      { id: "n1", type: "canvasNode", position: { x: 0, y: 0 }, data: {} },
+    ];
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({ nodes: savedNodes, edges: [] }),

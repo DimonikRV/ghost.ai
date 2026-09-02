@@ -32,6 +32,7 @@ interface ExportDialogProps {
   projectId: string;
   projectName: string;
   reactFlowWrapperRef?: React.RefObject<HTMLDivElement | null>;
+  wrapperMounted?: boolean;
 }
 
 interface CanvasState {
@@ -47,6 +48,7 @@ export function ExportDialog({
   projectId,
   projectName,
   reactFlowWrapperRef,
+  wrapperMounted,
 }: ExportDialogProps) {
   const [selectedFramework, setSelectedFramework] =
     useState<FrameworkDef | null>(null);
@@ -221,13 +223,13 @@ export function ExportDialog({
               icon={<FileImage className="h-3.5 w-3.5" />}
               label="PNG"
               onClick={() => handleDiagramExport("png")}
-              disabled={isBusy || !reactFlowWrapperRef?.current}
+              disabled={isBusy || !wrapperMounted}
             />
             <FormatButton
               icon={<FileImage className="h-3.5 w-3.5" />}
               label="SVG"
               onClick={() => handleDiagramExport("svg")}
-              disabled={isBusy || !reactFlowWrapperRef?.current}
+              disabled={isBusy || !wrapperMounted}
             />
             <FormatButton
               icon={<FileJson className="h-3.5 w-3.5" />}

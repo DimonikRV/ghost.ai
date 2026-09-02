@@ -19,6 +19,7 @@ vi.mock("@/components/ui/scroll-area", () => ({
 }));
 
 import { AiSidebar } from "@/components/editor/ai-sidebar";
+import { ApplyDiagramContext } from "@/components/editor/react-flow-wrapper-ref-context";
 
 describe("AiSidebar", () => {
   it("shows sidebar when isOpen=true", () => {
@@ -188,5 +189,88 @@ describe("AiSidebar", () => {
     fireEvent.change(textarea, { target: { value: "sent" } });
     fireEvent.click(screen.getByRole("button", { name: /Send message/ }));
     expect(textarea).toHaveValue("");
+  });
+
+  it("shows assistant outline reply without projectId", async () => {
+    render(<AiSidebar isOpen={true} onClose={vi.fn()} />);
+    const textarea = screen.getByPlaceholderText("Ask Ghost AI...");
+    fireEvent.change(textarea, { target: { value: "hello" } });
+    fireEvent.click(screen.getByRole("button", { name: /Send message/ }));
+    expect(
+      await screen.findByText("Here is the design outline for your request."),
+    ).toBeInTheDocument();
+  });
+
+  it("shows a loading indicator while generating", async () => {
+    vi.useFakeTimers();
+    render(
+      <AiSidebar isOpen={true} onClose={vi.fn()} projectId="project-abc123" />,
+    );
+    // Block trigger so generation never completes
+    global.fetch = vi.fn(() => new Promise(() => {})) as unknown as typeof fetch;
+    const textarea = screen.getByPlaceholderText("Ask Ghost AI...");
+    fireEvent.change(textarea, { target: { value: "design me" } });
+    fireEvent.click(screen.getByRole("button", { name: /Send message/ }));
+    await Promise.resolve();
+    expect(
+      screen.getByText("Generating design..."),
+    ).toBeInTheDocument();
+    vi.useRealTimers();
+  });
+
+  it("calls applyDiagram with nodes/edges when projectId is set", async () => {
+    const applyDiagram = vi.fn();
+    const nodes = [
+      { id: "n1", type: "canvasNode", position: { x: 10, y: 20 }, data: { label: "A", color: "red", shape: "rectangle" } },
+    ];
+    const edges = [{ id: "e1", source: "n1", target: "n2", type: "canvasEdge" }];
+
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ runId: "run-design-123" }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ status: "completed", nodes, edges }),
+      }) as unknown as typeof fetch;
+
+    render(
+      <ApplyDiagramContext.Provider value={applyDiagram}>
+        <AiSidebar isOpen={true} onClose={vi.fn()} projectId="project-abc123" />
+      </ApplyDiagramContext.Provider>,
+    );
+
+    const textarea = screen.getByPlaceholderText("Ask Ghost AI...");
+    fireEvent.change(textarea, { target: { value: "design a system" } });
+    fireEvent.click(screen.getByRole("button", { name: /Send message/ }));
+
+    expect(
+      await screen.findByText(
+        "Generated 1 nodes and 1 connections on the canvas.",
+      ),
+    ).toBeInTheDocument();
+    expect(applyDiagram).toHaveBeenCalledWith(nodes, edges);
+  });
+
+  it("shows error message when design generation fails", async () => {
+    global.fetch = vi.fn().mockResolvedValueOnce({
+      ok: false,
+      json: async () => ({}),
+    }) as unknown as typeof fetch;
+
+    render(
+      <AiSidebar isOpen={true} onClose={vi.fn()} projectId="project-abc123" />,
+    );
+
+    const textarea = screen.getByPlaceholderText("Ask Ghost AI...");
+    fireEvent.change(textarea, { target: { value: "design a system" } });
+    fireEvent.click(screen.getByRole("button", { name: /Send message/ }));
+
+    expect(
+      await screen.findByText(
+        "Sorry, I couldn't generate that design. Please try again.",
+      ),
+    ).toBeInTheDocument();
   });
 });

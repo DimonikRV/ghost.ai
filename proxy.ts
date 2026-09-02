@@ -1,11 +1,14 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
+const isLocalDevelopment = process.env.NODE_ENV !== "production";
+
 const isPublicRoute = createRouteMatcher([
   process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL || "/sign-in(.*)",
   process.env.NEXT_PUBLIC_CLERK_SIGN_UP_URL || "/sign-up(.*)",
   "/api/health(.*)",
   "/api/trigger-test(.*)",
   "/api/trigger-job(.*)",
+  ...(isLocalDevelopment ? ["/"] : []),
 ]);
 
 export default clerkMiddleware(async (auth, req) => {

@@ -27,6 +27,7 @@ const baseProps = {
   projectId: "proj_123",
   projectName: "My Project",
   reactFlowWrapperRef: { current: document.createElement("div") },
+  wrapperMounted: true,
 };
 
 const canvasState = {
@@ -122,10 +123,8 @@ describe("ExportDialog", () => {
     expect(filename).toContain("my-project-canvas.json");
   });
 
-  it("disables PNG and SVG buttons when reactFlowWrapperRef.current is null", () => {
-    render(
-      <ExportDialog {...baseProps} reactFlowWrapperRef={{ current: null }} />,
-    );
+  it("disables PNG and SVG buttons when the wrapper is not mounted", () => {
+    render(<ExportDialog {...baseProps} wrapperMounted={false} />);
     expect(screen.getByRole("button", { name: /^PNG$/ })).toBeDisabled();
     expect(screen.getByRole("button", { name: /^SVG$/ })).toBeDisabled();
   });

@@ -9,8 +9,9 @@ import { ShareDialog, type Collaborator } from "@/components/editor/share-dialog
 import { ShapePanel } from "@/components/editor/shape-panel";
 import { AiSidebar } from "@/components/editor/ai-sidebar";
 import { ExportDialog } from "@/components/editor/export-dialog";
-import { RegisterWrapperRefContext, ExportDialogContext } from "@/components/editor/react-flow-wrapper-ref-context";
+import { RegisterWrapperRefContext, ExportDialogContext, ApplyDiagramContext, RegisterApplyDiagramContext } from "@/components/editor/react-flow-wrapper-ref-context";
 import type { ProjectItem } from "@/hooks/use-project-actions";
+import type { ApplyDiagramFn } from "@/components/editor/react-flow-wrapper-ref-context";
 import { cn } from "@/lib/utils";
 import { LiveblocksProvider, RoomProvider } from "@liveblocks/react";
 import { PresenceAvatars } from "@/components/editor/presence-avatars";
@@ -62,12 +63,18 @@ export function WorkspaceShell({
   const mounted = useMounted();
   const router = useRouter();
   const reactFlowWrapperRef = useRef<HTMLDivElement>(null);
+  const [wrapperMounted, setWrapperMounted] = useState(false);
   const registerWrapperRef = useCallback(
     (node: HTMLDivElement | null) => {
       reactFlowWrapperRef.current = node;
+      setWrapperMounted(!!node);
     },
     [],
   );
+  const [applyDiagram, setApplyDiagram] = useState<ApplyDiagramFn | null>(null);
+  const registerApplyDiagram = useCallback((fn: ApplyDiagramFn | null) => {
+    setApplyDiagram(() => fn);
+  }, []);
 
   const refreshCollaborators = useCallback(async () => {
     const res = await fetch(`/api/projects/${project.id}/collaborators`);
@@ -236,20 +243,25 @@ export function WorkspaceShell({
 
         {/* AI sidebar */}
         {mounted && (
-          <AiSidebar
-            isOpen={aiSidebarOpen}
-            onClose={() => setAiSidebarOpen(false)}
-          />
+          <ApplyDiagramContext.Provider value={applyDiagram}>
+            <AiSidebar
+              isOpen={aiSidebarOpen}
+              onClose={() => setAiSidebarOpen(false)}
+              projectId={project.id}
+            />
+          </ApplyDiagramContext.Provider>
         )}
 
         {/* Main content area */}
         <main className="fixed top-12 left-0 right-0 bottom-0 overflow-hidden">
           <RegisterWrapperRefContext.Provider value={registerWrapperRef}>
-            <ExportDialogContext.Provider value={() => setExportDialogOpen(true)}>
-              <CanvasSaveStatusContext.Provider value={setSaveStatus}>
-                {children}
-              </CanvasSaveStatusContext.Provider>
-            </ExportDialogContext.Provider>
+            <RegisterApplyDiagramContext.Provider value={registerApplyDiagram}>
+              <ExportDialogContext.Provider value={() => setExportDialogOpen(true)}>
+                <CanvasSaveStatusContext.Provider value={setSaveStatus}>
+                  {children}
+                </CanvasSaveStatusContext.Provider>
+              </ExportDialogContext.Provider>
+            </RegisterApplyDiagramContext.Provider>
           </RegisterWrapperRefContext.Provider>
         </main>
 
@@ -276,6 +288,7 @@ export function WorkspaceShell({
           projectId={project.id}
           projectName={project.name}
           reactFlowWrapperRef={reactFlowWrapperRef}
+          wrapperMounted={wrapperMounted}
         />
       </RoomProvider>
     </LiveblocksProvider>

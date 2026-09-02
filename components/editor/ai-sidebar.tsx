@@ -1,15 +1,25 @@
 "use client";
 
-import { Bot, X, Send, FileText, Sparkles, Download } from "lucide-react";
+import {
+  Bot,
+  X,
+  Send,
+  FileText,
+  Sparkles,
+  Download,
+  Loader2,
+} from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
+import { useApplyDiagram } from "@/components/editor/react-flow-wrapper-ref-context";
 
 interface AiSidebarProps {
   isOpen: boolean;
   onClose: () => void;
+  projectId?: string;
 }
 
 interface ChatMessage {
@@ -24,30 +34,167 @@ const STARTER_PROMPTS = [
   "Build a CI/CD pipeline",
 ];
 
-export function AiSidebar({ isOpen, onClose }: AiSidebarProps) {
+const POLL_INTERVAL_MS = 1500;
+const POLL_TIMEOUT_MS = 120_000;
+
+function waitForDelay(ms: number, signal?: AbortSignal) {
+  return new Promise<void>((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(new Error("Aborted"));
+      return;
+    }
+
+    const timeoutId = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+
+    const onAbort = () => {
+      clearTimeout(timeoutId);
+      signal?.removeEventListener("abort", onAbort);
+      reject(new Error("Aborted"));
+    };
+
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
+}
+
+async function pollForResult(
+  runId: string,
+  signal?: AbortSignal,
+): Promise<{ nodes: unknown[]; edges: unknown[] }> {
+  const deadline = Date.now() + POLL_TIMEOUT_MS;
+  while (Date.now() < deadline) {
+    if (signal?.aborted) throw new Error("Aborted");
+    const res = await fetch(`/api/ai/design/${runId}/result`, {
+      signal,
+    });
+    if (res.ok) {
+      const body = await res.json();
+      return { nodes: body.nodes ?? [], edges: body.edges ?? [] };
+    }
+    if (res.status !== 409) {
+      throw new Error("Design task failed");
+    }
+    await waitForDelay(POLL_INTERVAL_MS, signal);
+  }
+  throw new Error("Design task timed out");
+}
+
+export function AiSidebar({ isOpen, onClose, projectId }: AiSidebarProps) {
   const [activeTab, setActiveTab] = useState("architect");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const generationAbortRef = useRef<AbortController | null>(null);
+  const applyDiagram = useApplyDiagram();
+  const applyDiagramRef = useRef(applyDiagram);
 
-  const handleSend = useCallback(() => {
-    const trimmed = input.trim();
-    if (!trimmed) return;
+  useEffect(() => {
+    applyDiagramRef.current = applyDiagram;
+  }, [applyDiagram]);
 
-    const userMsg: ChatMessage = {
-      id: `msg-${Date.now()}`,
-      role: "user",
-      content: trimmed,
+  useEffect(() => {
+    return () => {
+      generationAbortRef.current?.abort();
     };
-    setMessages((prev) => [...prev, userMsg]);
-    setInput("");
+  }, []);
 
-    // Reset textarea height
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "auto";
-    }
-  }, [input]);
+  const handleSend = useCallback(
+    async (raw?: string) => {
+      const trimmed = (raw ?? input).trim();
+      if (!trimmed || (projectId && isGenerating)) return;
+
+      generationAbortRef.current?.abort();
+      const generationController = new AbortController();
+      generationAbortRef.current = generationController;
+
+      const userMsg: ChatMessage = {
+        id: `msg-${Date.now()}`,
+        role: "user",
+        content: trimmed,
+      };
+      setMessages((prev) => [...prev, userMsg]);
+      setInput("");
+
+      // Reset textarea height
+      if (textareaRef.current) {
+        textareaRef.current.style.height = "auto";
+      }
+
+      if (!projectId) {
+        // No project context (e.g. tests/standalone): reply immediately
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `msg-${Date.now()}`,
+            role: "assistant",
+            content: "Here is the design outline for your request.",
+          },
+        ]);
+        return;
+      }
+
+      setIsGenerating(true);
+
+      const deadlineTimer = setTimeout(() => {
+        generationController.abort();
+      }, POLL_TIMEOUT_MS);
+
+      try {
+        const triggerRes = await fetch("/api/ai/design", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt: trimmed, roomId: projectId }),
+          signal: generationController.signal,
+        });
+        if (!triggerRes.ok) throw new Error("Could not start design task");
+        const triggerBody = (await triggerRes.json()) as { runId?: string };
+        const runId = triggerBody.runId;
+        if (!runId) throw new Error("Missing runId from design trigger");
+
+        const result = await pollForResult(runId, generationController.signal);
+        const currentApplyDiagram = applyDiagramRef.current;
+        if (!currentApplyDiagram) {
+          throw new Error("Canvas is not ready to apply the generated diagram");
+        }
+        currentApplyDiagram(
+          result.nodes as Parameters<typeof currentApplyDiagram>[0],
+          result.edges as Parameters<typeof currentApplyDiagram>[1],
+        );
+
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `msg-${Date.now()}`,
+            role: "assistant",
+            content:
+              result.nodes.length > 0
+                ? `Generated ${result.nodes.length} nodes and ${result.edges.length} connections on the canvas.`
+                : "Here is the design outline for your request.",
+          },
+        ]);
+      } catch (error) {
+        console.error("[ai-sidebar] Design generation failed", error);
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `msg-${Date.now()}`,
+            role: "assistant",
+            content:
+              "Sorry, I couldn't generate that design. Please try again.",
+          },
+        ]);
+      } finally {
+        clearTimeout(deadlineTimer);
+        generationAbortRef.current = null;
+        setIsGenerating(false);
+      }
+    },
+    [input, projectId, isGenerating],
+  );
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -59,19 +206,16 @@ export function AiSidebar({ isOpen, onClose }: AiSidebarProps) {
     [handleSend],
   );
 
-  const handleStarterClick = useCallback((prompt: string) => {
-    setInput(prompt);
-    // Auto-send after a tick so the state update batches
-    setTimeout(() => {
-      const userMsg: ChatMessage = {
-        id: `msg-${Date.now()}`,
-        role: "user",
-        content: prompt,
-      };
-      setMessages((prev) => [...prev, userMsg]);
-      setInput("");
-    }, 0);
-  }, []);
+  const handleStarterClick = useCallback(
+    (prompt: string) => {
+      setInput(prompt);
+      // Auto-send after a tick so the state update batches
+      setTimeout(() => {
+        handleSend(prompt);
+      }, 0);
+    },
+    [handleSend],
+  );
 
   const handleTextareaInput = useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -178,6 +322,12 @@ export function AiSidebar({ isOpen, onClose }: AiSidebarProps) {
                       {msg.content}
                     </div>
                   ))}
+                  {isGenerating && (
+                    <div className="mr-auto flex items-center gap-2 max-w-[85%] rounded-lg px-3 py-2 text-sm bg-card border border-border text-accent-foreground">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      <span>Generating design...</span>
+                    </div>
+                  )}
                 </div>
               )}
             </ScrollArea>
@@ -194,17 +344,21 @@ export function AiSidebar({ isOpen, onClose }: AiSidebarProps) {
               />
               <button
                 type="button"
-                onClick={handleSend}
-                disabled={!input.trim()}
+                onClick={() => handleSend()}
+                disabled={!input.trim() || isGenerating}
                 className={cn(
                   "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md transition-colors",
-                  input.trim()
+                  input.trim() && !isGenerating
                     ? "bg-accent-brand text-white hover:bg-accent-brand/90"
                     : "bg-muted text-muted-foreground cursor-not-allowed",
                 )}
                 aria-label="Send message"
               >
-                <Send className="h-4 w-4" />
+                {isGenerating ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
               </button>
             </div>
           </TabsContent>
