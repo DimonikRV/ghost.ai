@@ -1,5 +1,5 @@
 -- CreateTable
-CREATE TABLE "export_runs" (
+CREATE TABLE IF NOT EXISTS "export_runs" (
     "id" TEXT NOT NULL,
     "run_id" TEXT NOT NULL,
     "project_id" TEXT NOT NULL,
@@ -14,10 +14,10 @@ CREATE TABLE "export_runs" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "export_runs_run_id_key" ON "export_runs"("run_id");
+CREATE UNIQUE INDEX IF NOT EXISTS "export_runs_run_id_key" ON "export_runs"("run_id");
 
 -- CreateIndex
-CREATE INDEX "export_runs_run_id_idx" ON "export_runs"("run_id");
+CREATE INDEX IF NOT EXISTS "export_runs_run_id_idx" ON "export_runs"("run_id");
 
 -- CreateIndex
-CREATE INDEX "export_runs_user_id_project_id_idx" ON "export_runs"("user_id", "project_id");
+CREATE INDEX IF NOT EXISTS "export_runs_user_id_project_id_idx" ON "export_runs"("user_id", "project_id");

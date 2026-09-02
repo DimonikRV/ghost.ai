@@ -1,5 +1,5 @@
 -- CreateTable
-CREATE TABLE "task_runs" (
+CREATE TABLE IF NOT EXISTS "task_runs" (
     "id" TEXT NOT NULL,
     "run_id" TEXT NOT NULL,
     "task" TEXT NOT NULL,
@@ -11,10 +11,10 @@ CREATE TABLE "task_runs" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "task_runs_run_id_key" ON "task_runs"("run_id");
+CREATE UNIQUE INDEX IF NOT EXISTS "task_runs_run_id_key" ON "task_runs"("run_id");
 
 -- CreateIndex
-CREATE INDEX "task_runs_run_id_idx" ON "task_runs"("run_id");
+CREATE INDEX IF NOT EXISTS "task_runs_run_id_idx" ON "task_runs"("run_id");
 
 -- CreateIndex
-CREATE INDEX "task_runs_user_id_project_id_idx" ON "task_runs"("user_id", "project_id");
+CREATE INDEX IF NOT EXISTS "task_runs_user_id_project_id_idx" ON "task_runs"("user_id", "project_id");
