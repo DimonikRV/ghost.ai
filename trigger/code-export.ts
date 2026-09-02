@@ -47,7 +47,7 @@ export const codeExport = task({
     const userPrompt = buildGraphDescription(canvasJson);
 
     const { object: result } = await generateObject({
-      model: google("gemini-2.5-flash"),
+      model: google("gemini-2.5-flash") as any,
       schema: z.object({
         files: z.array(
           z.object({
