@@ -67,9 +67,9 @@ Triggered on push to `main`. Jobs, ordered:
    tag on failure** (exits non-zero). **Dormant by default**: gated behind the
    repository variable `ENABLE_VPS_DEPLOY == 'true'`. Until that is set (and the
    `VPS_*` secrets exist) the job is skipped.
-4. **trigger-deploy** — `npx trigger.dev deploy` to ship `trigger/` tasks.
-   Requires `build-push` + `migrate` and runs in parallel with `deploy` after
-   `migrate` completes.
+4. **trigger-deploy** — `npm ci` → `prisma generate` → `npx trigger.dev deploy`
+   to ship `trigger/` tasks. Requires `build-push` + `migrate` and runs in
+   parallel with `deploy` after `migrate` completes.
 
 A `notify` job posts to Slack (if `SLACK_WEBHOOK_URL` is set) when any job fails.
 

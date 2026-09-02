@@ -162,6 +162,9 @@ jobs:
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
 
+      - name: Generate Prisma client
+        run: npx prisma generate
+
       - name: Deploy tasks to Trigger.dev cloud
         run: npx trigger.dev deploy
         env:
