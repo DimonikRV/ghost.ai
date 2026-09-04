@@ -26,7 +26,7 @@ Update this file after every meaningful implementation change.
   - `tsc --noEmit` and `npm run lint` pass clean
 - **03-auth** — Clerk authentication wired into the app:
   - `@clerk/ui` installed for theme components
-  - `proxy.ts` at project root with `createRouteMatcher` — public routes: sign-in, sign-up; all others protected via `auth.protect()`
+  - `proxy.ts` at project root runs `clerkMiddleware()` (required by Clerk) without gatekeeping — auth is enforced per-resource via `auth()` / `auth.protect()`; `@clerk/next/require-auth-protection` lint rule guards against unprotected resources
   - `ClerkProvider` wraps root layout with Clerk's `dark` theme, CSS variable overrides (no hardcoded colors)
   - `app/(auth)/sign-in/page.tsx` — two-panel layout on large screens (left: branding/feature list, right: Clerk form), form-only on small screens
   - `app/(auth)/sign-up/page.tsx` — same two-panel layout pattern
@@ -122,14 +122,14 @@ Update this file after every meaningful implementation change.
 
 - **25-code-export** — Diagram formats (Mermaid, PlantUML, PNG, SVG, JSON) + AI code scaffolds (10 frameworks)(was implemented in code but never formally tracked):
   - Spec: `context/feature-specs/25-code-export.md` → Marked Complete (reconciled)
-  - `lib/export/` — `download.ts` (`downloadFile`), `mermaid.ts` (`graphToMermaid`, 6-shape mapping + edges), `plantuml.ts` (`graphToPlantUml`), `image.ts` (`exportToPng`/`exportToSvg` via `html-to-image`), `json.ts`, `frameworks.ts` (10 `FRAMEWORKS` + `getFramework`), `scaffold-prompt.ts` (`buildSystemPrompt` + `buildGraphDescription`)
+  - `lib/export/` — `download.ts` (`downloadFile`, defers `URL.revokeObjectURL` ~1s after click so Blob downloads aren't truncated), `mermaid.ts` (`graphToMermaid`, 6-shape mapping + edges), `plantuml.ts` (`graphToPlantUml`), `image.ts` (`exportToPng`/`exportToSvg` via `html-to-image`), `json.ts`, `frameworks.ts` (10 `FRAMEWORKS` + `getFramework`), `scaffold-prompt.ts` (`buildSystemPrompt` + `buildGraphDescription`)`
   - `prisma/models/export-run.prisma` — `ExportRun` model (runId unique, projectId, userId, framework, status, blobUrl, timestamps) + `export_runs` migration
   - `trigger/code-export.ts` — `codeExport` task: framework lookup, `generateObject()` with `google("gemini-2.5-flash")` + Zod `{ files: [{ path, content }] }`, JSZip ZIP, upload to Vercel Blob, marks `ExportRun` completed/failed
-  - `app/api/export/code/route.ts` — POST: 401/400/403/404 (no saved canvas)/502 flow, triggers task, creates `ExportRun`
+  - `app/api/export/code/route.ts` — POST: 401/400 (missing/invalid projectId-framework, unknown framework, or empty canvas `nodes:[]`) /403/404 (no saved canvas)/502 flow, triggers task, creates `ExportRun`
   - `app/api/export/code/[runId]/token/route.ts` — POST run-scoped public token with ownership check
-  - `app/api/export/code/[runId]/download/route.ts` — GET streams ZIP from Blob with ownership + status checks
-  - `components/editor/export-dialog.tsx` + `canvas-control-bar.tsx` (Export button, `Download` icon) + `react-flow-wrapper-ref-context.tsx` + `workspace-shell.tsx` wiring — export dialog with diagram format buttons + framework grid + progress
-  - Tests: `tests/unit/lib/export/{mermaid,plantuml,frameworks,json,image,download,scaffold-prompt}.test.ts`, `tests/components/export-dialog.test.tsx`, `tests/integration/api/export/{code,download}.test.ts` (landed with spec-24 coverage work)
+  - `app/api/export/code/[runId]/download/route.ts` — GET returns a 200 status envelope (`{ status: "pending"|"failed"|"completed" }`) while processing (no 409/500, so the browser logs no red errors), then streams the ZIP from Blob on `?file=1` with an explicit `Content-Length` (so ZIP viewers buffer correctly); ownership + status + hang-timeout checks
+  - `components/editor/export-dialog.tsx` + `canvas-control-bar.tsx` (Export button, `Download` icon) + `react-flow-wrapper-ref-context.tsx` + `workspace-shell.tsx` wiring — export dialog with diagram format buttons + framework grid + progress. Client-side empty-canvas guard: on open, fetches canvas state; disables "Generate & Download ZIP" and shows a hint when `nodes.length === 0`, and `handleCodeExport` early-returns with inline error instead of POSTing (server 400 remains the backstop)
+  - Tests: `tests/unit/lib/export/{mermaid,plantuml,frameworks,json,image,download,scaffold-prompt}.test.ts`, `tests/components/export-dialog.test.tsx`, `tests/integration/api/export/{code,download}.test.ts` (landed with spec-24 coverage work; code test also covers empty-canvas 400 via `@vercel/blob` mock)
 
 ## Completed (this session) (older)
 

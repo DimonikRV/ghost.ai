@@ -37,7 +37,7 @@
 ## Auth and Access Model
 
 - Every user signs in via Clerk (email, OAuth, etc.)
-- Route protection uses `proxy.ts` with `createRouteMatcher` — public routes from env vars, everything else protected via `auth.protect()`
+- Route protection is resource-based — each page, layout, and API route enforces its own `auth()` / `auth.protect()` check. `proxy.ts` runs `clerkMiddleware()` (required by Clerk) but performs no gatekeeping.
 - Projects have an `owned` boolean flag (mock data). In production, this maps to Clerk user ID ownership.
 - Only owned projects show mutate actions (rename, delete). Shared projects are read-only.
 - Client-side `owned` checks are for UI only — must be validated server-side when API is wired.
@@ -57,3 +57,5 @@
 4. Editor chrome (`EditorShell`) wraps all non-auth routes; auth pages opt out via `(auth)` route group
 5. Canvas nodes/edges are synced via Liveblocks — no local-only state for diagram data
 6. Shape-specific node rendering is deferred — all shapes currently render as bordered rectangles
+7. Code export from an empty canvas is intentionally rejected: `POST /api/export/code` returns 400 "Canvas is empty" when `nodes.length === 0`. The export dialog mirrors this client-side (disables the Generate button + inline hint) — this 400 is expected behavior, not a bug
+8. `GET /api/export/code/[runId]/download` never returns non-2xx during processing: while a run is pending it returns `200 { status: "pending"|"failed"|"completed" }`, and only `?file=1` streams the binary ZIP (with an explicit `Content-Length` from blob metadata so viewers buffer it correctly). This keeps the client's poll loop free of the red 409/500 console errors the browser logs for non-2xx fetches

@@ -1,21 +1,10 @@
-import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { clerkMiddleware } from "@clerk/nextjs/server";
 
-const isLocalDevelopment = process.env.NODE_ENV !== "production";
-
-const isPublicRoute = createRouteMatcher([
-  process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL || "/sign-in(.*)",
-  process.env.NEXT_PUBLIC_CLERK_SIGN_UP_URL || "/sign-up(.*)",
-  "/api/health(.*)",
-  "/api/trigger-test(.*)",
-  "/api/trigger-job(.*)",
-  ...(isLocalDevelopment ? ["/"] : []),
-]);
-
-export default clerkMiddleware(async (auth, req) => {
-  if (!isPublicRoute(req)) {
-    await auth.protect();
-  }
-});
+// Auth is enforced at each resource (pages, layouts, API routes) via
+// `auth()` / `auth.protect()` rather than middleware path matching.
+// clerkMiddleware() is still required for Clerk to work (session cookie,
+// JWT parsing) but performs no gatekeeping here.
+export default clerkMiddleware();
 
 export const config = {
   matcher: [

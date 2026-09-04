@@ -1,6 +1,7 @@
 import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
+import clerkNext from "@clerk/eslint-plugin/next";
 
 const eslintConfig = defineConfig([
   ...nextVitals,
@@ -21,6 +22,27 @@ const eslintConfig = defineConfig([
     // Coverage output.
     "coverage/**",
   ]),
+  {
+    plugins: {
+      "@clerk/next": clerkNext,
+    },
+    rules: {
+      // Require every App Router resource to enforce its own auth check
+      // (auth()/auth.protect()), instead of relying on middleware matching.
+      "@clerk/next/require-auth-protection": [
+        "error",
+        {
+          protected: ["app/**"],
+          public: [
+            "app/(auth)/**",
+            "app/api/health/**",
+            "app/api/trigger-test/**",
+            "app/api/trigger-job/**",
+          ],
+        },
+      ],
+    },
+  },
   {
     files: ["tests/**/*.{ts,tsx}", "**/*.test.{ts,tsx}", "**/*.spec.{ts,tsx}"],
     rules: {

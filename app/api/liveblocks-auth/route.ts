@@ -4,13 +4,13 @@ import { checkProjectAccess } from "@/lib/project-access";
 import { getLiveblocks, getUserCursorColor } from "@/lib/liveblocks";
 
 export async function POST(req: Request) {
-  if (!process.env.LIVEBLOCKS_SECRET_KEY) {
-    return new NextResponse("LIVEBLOCKS_SECRET_KEY is not configured", { status: 500 });
-  }
-
   const { userId } = await auth();
   if (!userId) {
     return new NextResponse("Unauthorized", { status: 401 });
+  }
+
+  if (!process.env.LIVEBLOCKS_SECRET_KEY) {
+    return new NextResponse("LIVEBLOCKS_SECRET_KEY is not configured", { status: 500 });
   }
 
   const json = await req.json();

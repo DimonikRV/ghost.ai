@@ -29,10 +29,12 @@ sync. Also read `AGENTS.md` in the repo root for the auto-maintained block that
 ## Ghost Pilot conventions
 
 - **`proxy.ts`** (project root) — Next.js 16 renamed `middleware.ts` to
-  `proxy.ts`; the old `middleware` convention is deprecated. This project uses
-  it for Clerk route protection (`clerkMiddleware` from
-  `@clerk/nextjs/server`, `createRouteMatcher`, `auth.protect()`). Use
-  `proxy.ts` by default; create a `middleware.ts` **only when the Edge runtime
+  `proxy.ts`; the old `middleware` convention is deprecated. This project runs
+  `clerkMiddleware()` for Clerk but does **not** gate auth in `proxy.ts` —
+  `createRouteMatcher` is deprecated. Enforce auth at each resource with
+  `auth()` / `auth.protect()` from `@clerk/nextjs/server`; the
+  `@clerk/next/require-auth-protection` lint rule flags unprotected resources.
+  Use `proxy.ts` by default; create a `middleware.ts` **only when the Edge runtime
   is required** — `proxy` runs on Node.js and cannot be reconfigured (`runtime`
   is unavailable in proxy files), while `middleware` remains the Edge-runtime
   file. See `node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md`

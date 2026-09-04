@@ -8,6 +8,7 @@ describe("downloadFile", () => {
   let clickSpy: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
+    vi.useFakeTimers();
     createObjectURL = vi.fn(() => "blob:mock");
     revokeObjectURL = vi.fn();
     URL.createObjectURL = createObjectURL as unknown as typeof URL.createObjectURL;
@@ -18,6 +19,7 @@ describe("downloadFile", () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.restoreAllMocks();
   });
 
@@ -35,7 +37,7 @@ describe("downloadFile", () => {
     expect(createObjectURL).toHaveBeenCalledWith(input);
   });
 
-  it("clicks an anchor with the download attribute and revokes the URL", () => {
+  it("clicks an anchor with the download attribute and defers revoking the URL", () => {
     let captured: { download?: string; href?: string } = {};
     clickSpy.mockImplementation(function (this: HTMLAnchorElement) {
       captured = { download: this.download, href: this.href };
@@ -44,7 +46,23 @@ describe("downloadFile", () => {
     expect(clickSpy).toHaveBeenCalledTimes(1);
     expect(captured.download).toBe("named.txt");
     expect(captured.href).toBe("blob:mock");
-    expect(revokeObjectURL).toHaveBeenCalledWith("blob:mock");
+    // The object URL must not be revoked synchronously — the browser copies
+    // the blob to disk asynchronously after click(), and revoking early
+    // truncates the download.
+    expect(revokeObjectURL).not.toHaveBeenCalled();
     expect(document.querySelectorAll("a")).toHaveLength(0);
+
+    vi.advanceTimersByTime(1000);
+    expect(revokeObjectURL).toHaveBeenCalledWith("blob:mock");
+  });
+
+  it("defers revoking for a binary Blob download to avoid truncation", () => {
+    const input = new Blob(["PK\x03\x04zipbytes"], {
+      type: "application/zip",
+    });
+    downloadFile(input, "out.zip", "application/zip");
+    expect(revokeObjectURL).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(1000);
+    expect(revokeObjectURL).toHaveBeenCalledWith("blob:mock");
   });
 });

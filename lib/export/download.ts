@@ -22,5 +22,9 @@ export function downloadFile(
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  // The browser copies the blob URL to disk asynchronously after click().
+  // Revoking it synchronously can interrupt that copy and truncate the
+  // download (files extract but are broken/empty). Defer the revoke so the
+  // browser finishes writing the file first.
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

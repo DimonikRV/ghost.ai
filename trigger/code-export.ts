@@ -1,7 +1,8 @@
 import { task, logger } from "@trigger.dev/sdk";
+import type { AnyOnCatchErrorHookFunction } from "@trigger.dev/sdk";
 import { generateObject } from "ai";
 import type { LanguageModel } from "ai";
-import { google } from "@ai-sdk/google";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { z } from "zod";
 import JSZip from "jszip";
 import { put } from "@vercel/blob";
@@ -13,6 +14,37 @@ import {
 import prisma from "../lib/prisma";
 import type { DiagramNode, DiagramEdge } from "../components/editor/starter-templates";
 
+const googleApiKey =
+  process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GOOGLE_AI_API_KEY;
+if (!googleApiKey) {
+  console.error(
+    "Missing Google AI API key: set GOOGLE_GENERATIVE_AI_API_KEY or GOOGLE_AI_API_KEY",
+  );
+}
+
+const google = createGoogleGenerativeAI({
+  apiKey: googleApiKey || undefined,
+});
+
+type CodeExportPayload = {
+  canvasJson: { nodes: DiagramNode[]; edges: DiagramEdge[] };
+  framework: string;
+  projectId: string;
+  userId: string;
+};
+
+const handleExportError: AnyOnCatchErrorHookFunction = async ({
+  error,
+  ctx,
+}) => {
+  const message = error instanceof Error ? error.message : String(error);
+  logger.error("Code export task failed", { error: message });
+  await prisma.exportRun.updateMany({
+    where: { runId: ctx.run.id },
+    data: { status: "failed", completedAt: new Date() },
+  });
+};
+
 export const codeExport = task({
   id: "code-export",
   retry: {
@@ -22,13 +54,9 @@ export const codeExport = task({
     maxTimeoutInMs: 30_000,
     randomize: false,
   },
+  catchError: handleExportError,
   run: async (
-    payload: {
-      canvasJson: { nodes: DiagramNode[]; edges: DiagramEdge[] };
-      framework: string;
-      projectId: string;
-      userId: string;
-    },
+    payload: CodeExportPayload,
     { ctx },
   ) => {
     const { canvasJson, framework: frameworkId, projectId } = payload;
@@ -48,7 +76,7 @@ export const codeExport = task({
     const userPrompt = buildGraphDescription(canvasJson);
 
     const { object: result } = await generateObject({
-      model: google("gemini-2.5-flash") as unknown as LanguageModel,
+      model: google("gemini-3.6-flash") as unknown as LanguageModel,
       schema: z.object({
         files: z.array(
           z.object({
@@ -65,9 +93,21 @@ export const codeExport = task({
       fileCount: result.files.length,
     });
 
+    const sanitizePath = (raw: string): string => {
+      const normalized = raw
+        .replace(/\\/g, "/")
+        .replace(/^\/+/, "")
+        .replace(/^(\.\.\/)+/, "")
+        .replace(/^[A-Za-z]:/, "")
+        .split("/")
+        .filter((seg) => seg && seg !== "." && seg !== "..")
+        .join("/");
+      return normalized || "untitled.txt";
+    };
+
     const zip = new JSZip();
     for (const file of result.files) {
-      zip.file(file.path, file.content);
+      zip.file(sanitizePath(file.path), file.content);
     }
     const zipBuffer = await zip.generateAsync({ type: "nodebuffer" });
 

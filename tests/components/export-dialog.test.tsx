@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ExportDialog } from "@/components/editor/export-dialog";
 import { downloadFile } from "@/lib/export/download";
@@ -81,6 +81,39 @@ describe("ExportDialog", () => {
     expect(gen).toBeDisabled();
   });
 
+  it("disables generate and shows a hint when the canvas has no nodes", async () => {
+    global.fetch = vi.fn(async () =>
+      new Response(JSON.stringify({ nodes: [], edges: [] }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    ) as unknown as typeof fetch;
+
+    const user = userEvent.setup();
+    render(<ExportDialog {...baseProps} />);
+    await user.click(await screen.findByRole("button", { name: /Java Spring Boot/i }));
+
+    const gen = screen.getByRole("button", { name: /Generate & Download ZIP/i });
+    await waitFor(() => expect(gen).toBeDisabled());
+    expect(
+      screen.getByText(/add at least one node to your canvas/i),
+    ).toBeInTheDocument();
+  });
+
+  it("re-enables generate and clears the hint when the canvas has nodes", async () => {
+    const user = userEvent.setup();
+    render(<ExportDialog {...baseProps} />);
+    const gen = screen.getByRole("button", { name: /Generate & Download ZIP/i });
+
+    const springBtn = await screen.findByRole("button", { name: /Java Spring Boot/i });
+    await user.click(springBtn);
+
+    await waitFor(() => expect(gen).toBeEnabled());
+    expect(
+      screen.queryByText(/add at least one node to your canvas/i),
+    ).not.toBeInTheDocument();
+  });
+
   it("downloads Mermaid when the Mermaid format button is clicked", async () => {
     const user = userEvent.setup();
     render(<ExportDialog {...baseProps} />);
@@ -151,5 +184,70 @@ describe("ExportDialog", () => {
     expect(mockExportToSvg.mock.calls[0][0]).toBe(
       baseProps.reactFlowWrapperRef.current,
     );
+  });
+
+  it("polls the status envelope and downloads the ZIP via ?file=1", async () => {
+    const user = userEvent.setup();
+    const downloadCalls: string[] = [];
+    global.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (init?.method === "POST") {
+        return new Response(JSON.stringify({ runId: "run_poll_test_1" }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      if (url.includes("?file=1")) {
+        downloadCalls.push(url);
+        return new Response("PK\x03\x04fake-zip", {
+          status: 200,
+          headers: {
+            "Content-Type": "application/zip",
+            "Content-Disposition":
+              'attachment; filename="dl-test-spring-boot.zip"',
+          },
+        });
+      }
+      if (url.includes("/download")) {
+        return new Response(JSON.stringify({ status: "completed" }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      // canvas state fetch on open
+      return new Response(JSON.stringify(canvasState), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }) as unknown as typeof fetch;
+
+    render(<ExportDialog {...baseProps} />);
+    const springBtn = await screen.findByRole("button", {
+      name: /Java Spring Boot/i,
+    });
+    await user.click(springBtn);
+
+    const gen = screen.getByRole("button", {
+      name: /Generate & Download ZIP/i,
+    });
+    await user.click(gen);
+
+    await waitFor(
+      () => expect(mockDownloadFile).toHaveBeenCalled(),
+      { timeout: 15_000 },
+    );
+
+    expect(downloadCalls.length).toBe(1);
+    const [blob, filename, mime] = mockDownloadFile.mock.calls.at(-1) as [
+      Blob,
+      string,
+      string,
+    ];
+    expect(filename).toBe("dl-test-spring-boot.zip");
+    expect(mime).toBe("application/zip");
+    expect(blob.type).toBe("application/zip");
+    const bytes = new Uint8Array(await blob.arrayBuffer());
+    expect(new TextDecoder().decode(bytes)).toBe("PK\x03\x04fake-zip");
+    expect(baseProps.onClose).toHaveBeenCalled();
   });
 });

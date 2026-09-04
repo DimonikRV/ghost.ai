@@ -1,11 +1,23 @@
 import { logger, schemaTask } from "@trigger.dev/sdk";
 import { z } from "zod";
 import { generateObject } from "ai";
-import { google } from "@ai-sdk/google";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import type {
   DiagramNode,
   DiagramEdge,
 } from "../components/editor/starter-templates";
+
+const googleApiKey =
+  process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GOOGLE_AI_API_KEY;
+if (!googleApiKey) {
+  console.error(
+    "Missing Google AI API key: set GOOGLE_GENERATIVE_AI_API_KEY or GOOGLE_AI_API_KEY",
+  );
+}
+
+const google = createGoogleGenerativeAI({
+  apiKey: googleApiKey || undefined,
+});
 
 const DESIGN_SYSTEM_PROMPT = `You are an expert software architect. Your job is to translate a user's natural-language description of a system into a visual architecture diagram for a React Flow canvas.
 
@@ -144,7 +156,7 @@ export const designAgent = schemaTask({
     });
 
     const { object: diagram } = await generateObject({
-      model: google("gemini-2.5-flash"),
+      model: google("gemini-3.6-flash"),
       schema: diagramSchema,
       system: DESIGN_SYSTEM_PROMPT,
       prompt,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import {
   Download,
   FileCode,
@@ -54,6 +54,8 @@ export function ExportDialog({
     useState<FrameworkDef | null>(null);
   const [status, setStatus] = useState<ExportStatus>("idle");
   const [currentRunId, setCurrentRunId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [canvasHasNodes, setCanvasHasNodes] = useState<boolean | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   const filename = slugify(projectName) || "project";
@@ -63,6 +65,21 @@ export function ExportDialog({
     if (!res.ok) throw new Error("Failed to load canvas");
     return res.json();
   }, [projectId]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false;
+    fetchCanvasState()
+      .then((canvas) => {
+        if (!cancelled) setCanvasHasNodes(canvas.nodes.length > 0);
+      })
+      .catch(() => {
+        if (!cancelled) setCanvasHasNodes(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, fetchCanvasState]);
 
   const handleDiagramExport = useCallback(
     async (format: "mermaid" | "plantuml" | "png" | "svg" | "json") => {
@@ -106,28 +123,54 @@ export function ExportDialog({
   );
 
   const pollForCompletion = useCallback(
-    async (runId: string, _token: string) => {
+    async (runId: string) => {
       const maxAttempts = 120;
       const interval = 2_000;
 
       for (let i = 0; i < maxAttempts; i++) {
         await new Promise((r) => setTimeout(r, interval));
 
+        let statusRes: Response;
         try {
-          const downloadRes = await fetch(
-            `/api/export/code/${runId}/download`,
-          );
+          statusRes = await fetch(`/api/export/code/${runId}/download`);
+        } catch {
+          continue;
+        }
+
+        let statusBody: { status?: string; error?: string };
+        try {
+          statusBody = await statusRes.json();
+        } catch {
+          continue;
+        }
+
+        if (statusBody.status === "pending") {
+          continue;
+        }
+
+        if (statusBody.status === "failed") {
+          throw new Error(statusBody.error || "Export generation failed");
+        }
+
+        if (statusBody.status === "completed") {
+          let downloadRes: Response;
+          try {
+            downloadRes = await fetch(
+              `/api/export/code/${runId}/download?file=1`,
+            );
+          } catch {
+            continue;
+          }
+
           if (downloadRes.ok) {
-            setStatus("downloading");
             const blob = await downloadRes.blob();
             const disposition =
               downloadRes.headers.get("content-disposition") || "";
-            const filenameMatch = disposition.match(
-              /filename="?(.+?)"?$/,
-            );
+            const filenameMatch = disposition.match(/filename="?(.+?)"?$/);
             const dlFilename = filenameMatch
               ? filenameMatch[1]
               : `${filename}-${selectedFramework?.id}.zip`;
+            setStatus("downloading");
             downloadFile(blob, dlFilename, "application/zip");
             setStatus("idle");
             setCurrentRunId(null);
@@ -135,16 +178,12 @@ export function ExportDialog({
             return;
           }
 
-          if (downloadRes.status === 409) {
-            continue;
-          }
-
-          if (downloadRes.status === 500) {
-            throw new Error("Export generation failed");
-          }
-        } catch {
           continue;
         }
+
+        throw new Error(
+          `Unexpected export status: ${statusBody.status ?? "unknown"}`,
+        );
       }
 
       throw new Error("Export timed out");
@@ -154,7 +193,17 @@ export function ExportDialog({
 
   const handleCodeExport = useCallback(async () => {
     if (!selectedFramework) return;
+
+    // Guard: don't POST to the export API for an empty canvas — the server
+    // rejects it with a 400. Fail fast here with inline feedback instead.
+    if (canvasHasNodes === false) {
+      setError("Canvas is empty — add nodes before exporting");
+      setStatus("idle");
+      return;
+    }
+
     setStatus("generating");
+    setError(null);
 
     try {
       const triggerRes = await fetch("/api/export/code", {
@@ -171,25 +220,26 @@ export function ExportDialog({
       const { runId } = await triggerRes.json();
       setCurrentRunId(runId);
 
-      const tokenRes = await fetch(
-        `/api/export/code/${runId}/token`,
-        { method: "POST", headers: { "Content-Type": "application/json" } },
-      );
-      if (!tokenRes.ok) throw new Error("Failed to get progress token");
-      const { token } = await tokenRes.json();
-
-      await pollForCompletion(runId, token);
+      await pollForCompletion(runId);
     } catch (err) {
-      console.error("Code export failed:", err);
+      const message =
+        err instanceof Error ? err.message : "Export failed";
+      setError(message);
       setStatus("idle");
       setCurrentRunId(null);
     }
-  }, [selectedFramework, projectId, pollForCompletion]);
+  }, [selectedFramework, projectId, pollForCompletion, canvasHasNodes]);
 
   const isBusy = status !== "idle";
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (open) setCanvasHasNodes(null);
+        else onClose();
+      }}
+    >
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -252,7 +302,10 @@ export function ExportDialog({
               <button
                 key={fw.id}
                 type="button"
-                onClick={() => setSelectedFramework(fw)}
+                onClick={() => {
+                  setSelectedFramework(fw);
+                  setError(null);
+                }}
                 disabled={isBusy}
                 className={cn(
                   "flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs text-left transition-colors border",
@@ -275,10 +328,10 @@ export function ExportDialog({
           <button
             type="button"
             onClick={handleCodeExport}
-            disabled={!selectedFramework || isBusy}
+            disabled={!selectedFramework || isBusy || canvasHasNodes === false}
             className={cn(
               "inline-flex h-9 w-full items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors",
-              selectedFramework && !isBusy
+              selectedFramework && !isBusy && canvasHasNodes !== false
                 ? "bg-accent-brand text-white hover:bg-accent-brand/90"
                 : "bg-muted text-muted-foreground cursor-not-allowed",
             )}
@@ -308,8 +361,18 @@ export function ExportDialog({
 
           {currentRunId && status === "generating" && (
             <p className="text-xs text-muted-foreground text-center">
-              This may take 30–60 seconds…
+              Generating your project scaffold…
             </p>
+          )}
+
+          {canvasHasNodes === false && selectedFramework && (
+            <p className="text-xs text-muted-foreground text-center">
+              Add at least one node to your canvas before exporting.
+            </p>
+          )}
+
+          {error && (
+            <p className="text-xs text-red-500 text-center">{error}</p>
           )}
         </div>
       </DialogContent>

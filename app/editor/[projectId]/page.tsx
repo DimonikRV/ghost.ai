@@ -12,13 +12,13 @@ export default async function WorkspacePage({
 }: {
   params: Promise<{ projectId: string }>;
 }) {
-  const { projectId } = await params;
-
   // Check authentication — redirect unauthenticated users
   const { userId } = await auth();
   if (!userId) {
     redirect("/sign-in");
   }
+
+  const { projectId } = await params;
 
   // Check project access
   const result = await checkProjectAccess(projectId);
