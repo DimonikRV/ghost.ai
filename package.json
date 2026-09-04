@@ -81,7 +81,7 @@
     "shadcn": "^4.19.0",
     "tailwindcss": "^4",
     "trigger.dev": "^4.5.12",
-    "tsx": "^4.23.12",
+    "tsx": "^4.23.13",
     "typescript": "^5",
     "vitest": "^4.1.11"
   },
