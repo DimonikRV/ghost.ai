@@ -44,11 +44,12 @@ const canvasState = {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  global.fetch = vi.fn(async () =>
-    new Response(JSON.stringify(canvasState), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    }),
+  global.fetch = vi.fn(
+    async () =>
+      new Response(JSON.stringify(canvasState), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
   ) as unknown as typeof fetch;
 });
 
@@ -70,30 +71,39 @@ describe("ExportDialog", () => {
   it("highlights a framework when selected", async () => {
     const user = userEvent.setup();
     render(<ExportDialog {...baseProps} />);
-    const btn = await screen.findByRole("button", { name: /Java Spring Boot/i });
+    const btn = await screen.findByRole("button", {
+      name: /Java Spring Boot/i,
+    });
     await user.click(btn);
     expect(btn.className).toContain("accent-brand");
   });
 
   it("disables the generate button until a framework is selected", () => {
     render(<ExportDialog {...baseProps} />);
-    const gen = screen.getByRole("button", { name: /Generate & Download ZIP/i });
+    const gen = screen.getByRole("button", {
+      name: /Generate & Download ZIP/i,
+    });
     expect(gen).toBeDisabled();
   });
 
   it("disables generate and shows a hint when the canvas has no nodes", async () => {
-    global.fetch = vi.fn(async () =>
-      new Response(JSON.stringify({ nodes: [], edges: [] }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }),
+    global.fetch = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ nodes: [], edges: [] }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
     ) as unknown as typeof fetch;
 
     const user = userEvent.setup();
     render(<ExportDialog {...baseProps} />);
-    await user.click(await screen.findByRole("button", { name: /Java Spring Boot/i }));
+    await user.click(
+      await screen.findByRole("button", { name: /Java Spring Boot/i }),
+    );
 
-    const gen = screen.getByRole("button", { name: /Generate & Download ZIP/i });
+    const gen = screen.getByRole("button", {
+      name: /Generate & Download ZIP/i,
+    });
     await waitFor(() => expect(gen).toBeDisabled());
     expect(
       screen.getByText(/add at least one node to your canvas/i),
@@ -103,9 +113,13 @@ describe("ExportDialog", () => {
   it("re-enables generate and clears the hint when the canvas has nodes", async () => {
     const user = userEvent.setup();
     render(<ExportDialog {...baseProps} />);
-    const gen = screen.getByRole("button", { name: /Generate & Download ZIP/i });
+    const gen = screen.getByRole("button", {
+      name: /Generate & Download ZIP/i,
+    });
 
-    const springBtn = await screen.findByRole("button", { name: /Java Spring Boot/i });
+    const springBtn = await screen.findByRole("button", {
+      name: /Java Spring Boot/i,
+    });
     await user.click(springBtn);
 
     await waitFor(() => expect(gen).toBeEnabled());
@@ -166,9 +180,7 @@ describe("ExportDialog", () => {
     const user = userEvent.setup();
     render(<ExportDialog {...baseProps} />);
     await user.click(screen.getByRole("button", { name: /^PNG$/ }));
-    await waitFor(() =>
-      expect(mockExportToPng).toHaveBeenCalled(),
-    );
+    await waitFor(() => expect(mockExportToPng).toHaveBeenCalled());
     expect(mockExportToPng.mock.calls[0][0]).toBe(
       baseProps.reactFlowWrapperRef.current,
     );
@@ -178,9 +190,7 @@ describe("ExportDialog", () => {
     const user = userEvent.setup();
     render(<ExportDialog {...baseProps} />);
     await user.click(screen.getByRole("button", { name: /^SVG$/ }));
-    await waitFor(() =>
-      expect(mockExportToSvg).toHaveBeenCalled(),
-    );
+    await waitFor(() => expect(mockExportToSvg).toHaveBeenCalled());
     expect(mockExportToSvg.mock.calls[0][0]).toBe(
       baseProps.reactFlowWrapperRef.current,
     );
@@ -189,37 +199,39 @@ describe("ExportDialog", () => {
   it("polls the status envelope and downloads the ZIP via ?file=1", async () => {
     const user = userEvent.setup();
     const downloadCalls: string[] = [];
-    global.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-      const url = String(input);
-      if (init?.method === "POST") {
-        return new Response(JSON.stringify({ runId: "run_poll_test_1" }), {
+    global.fetch = vi.fn(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (init?.method === "POST") {
+          return new Response(JSON.stringify({ runId: "run_poll_test_1" }), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          });
+        }
+        if (url.includes("?file=1")) {
+          downloadCalls.push(url);
+          return new Response("PK\x03\x04fake-zip", {
+            status: 200,
+            headers: {
+              "Content-Type": "application/zip",
+              "Content-Disposition":
+                'attachment; filename="dl-test-spring-boot.zip"',
+            },
+          });
+        }
+        if (url.includes("/download")) {
+          return new Response(JSON.stringify({ status: "completed" }), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          });
+        }
+        // canvas state fetch on open
+        return new Response(JSON.stringify(canvasState), {
           status: 200,
           headers: { "Content-Type": "application/json" },
         });
-      }
-      if (url.includes("?file=1")) {
-        downloadCalls.push(url);
-        return new Response("PK\x03\x04fake-zip", {
-          status: 200,
-          headers: {
-            "Content-Type": "application/zip",
-            "Content-Disposition":
-              'attachment; filename="dl-test-spring-boot.zip"',
-          },
-        });
-      }
-      if (url.includes("/download")) {
-        return new Response(JSON.stringify({ status: "completed" }), {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        });
-      }
-      // canvas state fetch on open
-      return new Response(JSON.stringify(canvasState), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    }) as unknown as typeof fetch;
+      },
+    ) as unknown as typeof fetch;
 
     render(<ExportDialog {...baseProps} />);
     const springBtn = await screen.findByRole("button", {
@@ -232,10 +244,9 @@ describe("ExportDialog", () => {
     });
     await user.click(gen);
 
-    await waitFor(
-      () => expect(mockDownloadFile).toHaveBeenCalled(),
-      { timeout: 15_000 },
-    );
+    await waitFor(() => expect(mockDownloadFile).toHaveBeenCalled(), {
+      timeout: 15_000,
+    });
 
     expect(downloadCalls.length).toBe(1);
     const [blob, filename, mime] = mockDownloadFile.mock.calls.at(-1) as [
@@ -249,5 +260,55 @@ describe("ExportDialog", () => {
     const bytes = new Uint8Array(await blob.arrayBuffer());
     expect(new TextDecoder().decode(bytes)).toBe("PK\x03\x04fake-zip");
     expect(baseProps.onClose).toHaveBeenCalled();
+  });
+
+  it("shows the reported error for a JSON download failure response", async () => {
+    const user = userEvent.setup();
+    global.fetch = vi.fn(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (init?.method === "POST") {
+          return new Response(JSON.stringify({ runId: "run_json_failure_1" }), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          });
+        }
+        if (url.includes("?file=1")) {
+          return new Response(
+            JSON.stringify({
+              status: "failed",
+              error: "Archive was not created",
+            }),
+            {
+              status: 200,
+              headers: { "Content-Type": "application/json" },
+            },
+          );
+        }
+        if (url.includes("/download")) {
+          return new Response(JSON.stringify({ status: "completed" }), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          });
+        }
+        return new Response(JSON.stringify(canvasState), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      },
+    ) as unknown as typeof fetch;
+
+    render(<ExportDialog {...baseProps} />);
+    await user.click(
+      await screen.findByRole("button", { name: /Java Spring Boot/i }),
+    );
+    await user.click(
+      screen.getByRole("button", { name: /Generate & Download ZIP/i }),
+    );
+
+    await waitFor(() =>
+      expect(screen.getByText("Archive was not created")).toBeInTheDocument(),
+    );
+    expect(mockDownloadFile).not.toHaveBeenCalled();
   });
 });

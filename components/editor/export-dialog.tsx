@@ -23,7 +23,10 @@ import { exportToPng, exportToSvg } from "@/lib/export/image";
 import { downloadFile } from "@/lib/export/download";
 import { slugify } from "@/lib/slugify";
 import { FRAMEWORKS, type FrameworkDef } from "@/lib/export/frameworks";
-import type { DiagramNode, DiagramEdge } from "@/components/editor/starter-templates";
+import type {
+  DiagramNode,
+  DiagramEdge,
+} from "@/components/editor/starter-templates";
 import { cn } from "@/lib/utils";
 
 interface ExportDialogProps {
@@ -163,6 +166,18 @@ export function ExportDialog({
           }
 
           if (downloadRes.ok) {
+            const contentType = downloadRes.headers.get("content-type") || "";
+            if (contentType.includes("application/json")) {
+              const downloadBody: { status?: string; error?: string } =
+                await downloadRes.json();
+              if (downloadBody.status === "failed") {
+                throw new Error(
+                  downloadBody.error || "Export generation failed",
+                );
+              }
+              throw new Error("Unexpected export download response");
+            }
+
             const blob = await downloadRes.blob();
             const disposition =
               downloadRes.headers.get("content-disposition") || "";
@@ -222,8 +237,7 @@ export function ExportDialog({
 
       await pollForCompletion(runId);
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Export failed";
+      const message = err instanceof Error ? err.message : "Export failed";
       setError(message);
       setStatus("idle");
       setCurrentRunId(null);
@@ -371,9 +385,7 @@ export function ExportDialog({
             </p>
           )}
 
-          {error && (
-            <p className="text-xs text-red-500 text-center">{error}</p>
-          )}
+          {error && <p className="text-xs text-red-500 text-center">{error}</p>}
         </div>
       </DialogContent>
     </Dialog>
