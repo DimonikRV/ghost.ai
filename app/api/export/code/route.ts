@@ -4,6 +4,7 @@ import { tasks } from "@trigger.dev/sdk";
 import { get } from "@vercel/blob";
 import { codeExport } from "@/trigger/code-export";
 import { getFramework } from "@/lib/export/frameworks";
+import { hashCanvas } from "@/lib/export/canvas-hash";
 import { checkProjectAccess } from "@/lib/project-access";
 import prisma from "@/lib/prisma";
 import type { DiagramNode, DiagramEdge } from "@/components/editor/starter-templates";
@@ -90,6 +91,8 @@ export async function POST(req: Request) {
     );
   }
 
+  const canvasHash = hashCanvas(canvasJson);
+
   let handle: { id: string };
   try {
     handle = await tasks.trigger<typeof codeExport>("code-export", {
@@ -112,6 +115,7 @@ export async function POST(req: Request) {
       userId,
       framework,
       status: "pending",
+      canvasHash,
     },
   });
 

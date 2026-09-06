@@ -8,6 +8,7 @@ import {
   FileJson,
   Package,
   Loader2,
+  AlertTriangle,
 } from "lucide-react";
 import {
   Dialog,
@@ -59,6 +60,13 @@ export function ExportDialog({
   const [currentRunId, setCurrentRunId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [canvasHasNodes, setCanvasHasNodes] = useState<boolean | null>(null);
+  const [drift, setDrift] = useState<{
+    hasExport: boolean;
+    drifted: boolean;
+    comparable: boolean;
+    framework?: string;
+    lastExportAt?: string;
+  } | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   const filename = slugify(projectName) || "project";
@@ -68,6 +76,20 @@ export function ExportDialog({
     if (!res.ok) throw new Error("Failed to load canvas");
     return res.json();
   }, [projectId]);
+
+  const fetchDrift = useCallback(
+    async (framework?: string) => {
+      const query = framework
+        ? `?framework=${encodeURIComponent(framework)}`
+        : "";
+      const res = await fetch(
+        `/api/projects/${projectId}/drift${query}`,
+      );
+      if (!res.ok) throw new Error("Failed to load drift status");
+      return res.json();
+    },
+    [projectId],
+  );
 
   useEffect(() => {
     if (!isOpen) return;
@@ -79,10 +101,36 @@ export function ExportDialog({
       .catch(() => {
         if (!cancelled) setCanvasHasNodes(null);
       });
+
+    fetchDrift()
+      .then((result) => {
+        if (!cancelled) setDrift(result);
+      })
+      .catch(() => {
+        if (!cancelled) setDrift(null);
+      });
+
     return () => {
       cancelled = true;
     };
-  }, [isOpen, fetchCanvasState]);
+  }, [isOpen, fetchCanvasState, fetchDrift]);
+
+  // When a framework is selected, re-check drift scoped to that framework so
+  // the banner reflects whether THAT scaffold is stale.
+  useEffect(() => {
+    if (!isOpen || !selectedFramework) return;
+    let cancelled = false;
+    fetchDrift(selectedFramework.id)
+      .then((result) => {
+        if (!cancelled) setDrift(result);
+      })
+      .catch(() => {
+        if (!cancelled) setDrift(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, selectedFramework, fetchDrift]);
 
   const handleDiagramExport = useCallback(
     async (format: "mermaid" | "plantuml" | "png" | "svg" | "json") => {
@@ -250,8 +298,10 @@ export function ExportDialog({
     <Dialog
       open={isOpen}
       onOpenChange={(open) => {
-        if (open) setCanvasHasNodes(null);
-        else onClose();
+        if (open) {
+          setCanvasHasNodes(null);
+          setDrift(null);
+        } else onClose();
       }}
     >
       <DialogContent className="sm:max-w-md">
@@ -339,6 +389,19 @@ export function ExportDialog({
 
         {/* Generate button + status */}
         <div className="space-y-2">
+          {drift?.hasExport && drift.comparable && drift.drifted && (
+            <div
+              role="status"
+              className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300"
+            >
+              <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+              <span>
+                Your last export is out of date — the canvas changed since it
+                was generated. Re-export to refresh the scaffold.
+              </span>
+            </div>
+          )}
+
           <button
             type="button"
             onClick={handleCodeExport}

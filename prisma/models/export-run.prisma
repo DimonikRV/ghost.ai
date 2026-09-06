@@ -6,6 +6,7 @@ model ExportRun {
   framework   String
   status      String    @default("pending") // pending | generating | completed | failed
   blobUrl     String?   @map("blob_url")
+  canvasHash  String?   @map("canvas_hash") // fingerprint of the canvas this export was generated from
   createdAt   DateTime  @default(now()) @map("created_at")
   completedAt DateTime? @map("completed_at")
 

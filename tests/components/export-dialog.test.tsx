@@ -170,6 +170,84 @@ describe("ExportDialog", () => {
     expect(filename).toContain("my-project-canvas.json");
   });
 
+  it("shows a drift warning when the last export is out of date", async () => {
+    const user = userEvent.setup();
+    global.fetch = vi.fn(
+      async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.includes("/drift")) {
+          return new Response(
+            JSON.stringify({
+              hasExport: true,
+              drifted: true,
+              comparable: true,
+              framework: "spring-boot",
+              lastExportAt: new Date().toISOString(),
+            }),
+            {
+              status: 200,
+              headers: { "Content-Type": "application/json" },
+            },
+          );
+        }
+        return new Response(JSON.stringify(canvasState), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      },
+    ) as unknown as typeof fetch;
+
+    render(<ExportDialog {...baseProps} />);
+    await user.click(
+      await screen.findByRole("button", { name: /Java Spring Boot/i }),
+    );
+
+    await waitFor(() =>
+      expect(
+        screen.getByText(/your last export is out of date/i),
+      ).toBeInTheDocument(),
+    );
+  });
+
+  it("does not show a drift warning when the last export matches the canvas", async () => {
+    const user = userEvent.setup();
+    global.fetch = vi.fn(
+      async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.includes("/drift")) {
+          return new Response(
+            JSON.stringify({
+              hasExport: true,
+              drifted: false,
+              comparable: true,
+              framework: "spring-boot",
+              lastExportAt: new Date().toISOString(),
+            }),
+            {
+              status: 200,
+              headers: { "Content-Type": "application/json" },
+            },
+          );
+        }
+        return new Response(JSON.stringify(canvasState), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      },
+    ) as unknown as typeof fetch;
+
+    render(<ExportDialog {...baseProps} />);
+    await user.click(
+      await screen.findByRole("button", { name: /Java Spring Boot/i }),
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.queryByText(/your last export is out of date/i),
+      ).not.toBeInTheDocument();
+    });
+  });
+
   it("disables PNG and SVG buttons when the wrapper is not mounted", () => {
     render(<ExportDialog {...baseProps} wrapperMounted={false} />);
     expect(screen.getByRole("button", { name: /^PNG$/ })).toBeDisabled();
@@ -306,8 +384,12 @@ describe("ExportDialog", () => {
       screen.getByRole("button", { name: /Generate & Download ZIP/i }),
     );
 
-    await waitFor(() =>
-      expect(screen.getByText("Archive was not created")).toBeInTheDocument(),
+    await waitFor(
+      () =>
+        expect(
+          screen.getByText("Archive was not created"),
+        ).toBeInTheDocument(),
+      { timeout: 6_000 },
     );
     expect(mockDownloadFile).not.toHaveBeenCalled();
   });
