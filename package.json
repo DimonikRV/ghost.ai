@@ -43,7 +43,7 @@
     "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "^7.10.0",
     "@prisma/extension-accelerate": "^3.0.1",
-    "@trigger.dev/react-hooks": "^4.6.0",
+    "@trigger.dev/react-hooks": "^4.6.3",
     "@trigger.dev/sdk": "^4.6.0",
     "@vercel/blob": "^2.8.0",
     "@xyflow/react": "^12.11.6",
