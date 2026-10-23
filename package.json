@@ -30,7 +30,7 @@
     "logs:trigger": "bash scripts/logs.sh trigger"
   },
   "dependencies": {
-    "@ai-sdk/google": "3.0.131",
+    "@ai-sdk/google": "3.0.136",
     "@base-ui/react": "^1.9.0",
     "@clerk/backend": "^3.23.2",
     "@clerk/nextjs": "^7.9.14",
