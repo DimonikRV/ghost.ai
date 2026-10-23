@@ -83,7 +83,7 @@
     "trigger.dev": "^4.7.5",
     "tsx": "^4.23.15",
     "typescript": "^5",
-    "vitest": "^4.1.11"
+    "vitest": "^4.1.12"
   },
   "allowScripts": {
     "bufferutil@4.1.0": true,
