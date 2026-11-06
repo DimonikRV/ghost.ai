@@ -46,7 +46,7 @@
     "@trigger.dev/react-hooks": "^4.8.1",
     "@trigger.dev/sdk": "^4.8.1",
     "@vercel/blob": "^2.8.2",
-    "@xyflow/react": "^12.12.0",
+    "@xyflow/react": "^12.12.1",
     "ai": "^6.0.316",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
