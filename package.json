@@ -47,7 +47,7 @@
     "@trigger.dev/sdk": "^4.8.3",
     "@vercel/blob": "^2.8.2",
     "@xyflow/react": "^12.12.1",
-    "ai": "^6.0.322",
+    "ai": "^6.0.326",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "dotenv": "^17.4.2",
